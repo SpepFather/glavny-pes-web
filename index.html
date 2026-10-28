@@ -1,0 +1,3164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2E2A26">
+<title>Главный пёс — мини-игра про метки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Comfortaa:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{background:#2E2A26;font-family:'Comfortaa','Noto Sans SC','Microsoft YaHei',sans-serif;color:#2E2A26;user-select:none;-webkit-user-select:none;touch-action:none}
+  #game{position:fixed;inset:0;display:block;touch-action:none}
+  .hidden{opacity:0 !important;pointer-events:none !important}
+
+  .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(40,34,27,.55);transition:opacity .35s;z-index:30;padding:16px}
+  .card{background:#FBF4E2;border:3px solid #2E2A26;border-radius:24px;box-shadow:0 6px 0 #2E2A26;padding:24px 28px;max-width:620px;width:100%;text-align:center;max-height:94vh;overflow:auto}
+  .card h1{font-family:'Unbounded','Noto Sans SC','Microsoft YaHei',sans-serif;font-weight:800;font-size:clamp(26px,5.6vw,42px);line-height:1.08}
+  .card h1 span{color:#E8A33D}
+  .tagline{margin:10px 0 12px;font-weight:700;color:#6E655A;font-size:13.5px}
+  .paws{display:flex;justify-content:center;gap:8px;margin-bottom:8px;color:#E8A33D}
+  .paws svg{width:24px;height:24px}
+  .paws svg:nth-child(2){transform:rotate(18deg) translateY(3px)}
+  .paws svg:nth-child(3){transform:rotate(-14deg)}
+  .rules{list-style:none;text-align:left;margin:0 auto 14px;max-width:480px;display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:12.5px}
+  .rules li{display:flex;align-items:center;gap:9px}
+  .rules svg{flex:none;width:20px;height:20px;color:#B37A16}
+  .btn{font-family:'Unbounded','Noto Sans SC','Microsoft YaHei',sans-serif;font-weight:800;font-size:17px;letter-spacing:.04em;color:#2E2A26;background:#F2A93B;border:3px solid #2E2A26;border-radius:16px;box-shadow:0 5px 0 #2E2A26;padding:14px 34px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 7px 0 #2E2A26}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #2E2A26}
+  .btn.ghost{background:#FBF4E2;font-size:12px;padding:11px 20px}
+  .btnRow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .keys-hint{margin-top:12px;font-size:12px;color:#6E655A;font-weight:700}
+  kbd{display:inline-block;background:#fff;border:2px solid #2E2A26;border-bottom-width:4px;border-radius:7px;padding:1px 7px;font-family:'Comfortaa','Noto Sans SC',sans-serif;font-weight:700;font-size:11px}
+  .stats{margin:14px auto 4px;max-width:400px;text-align:left;font-weight:700;font-size:13px}
+  .stats .row{display:flex;justify-content:space-between;gap:12px;border-bottom:2px dotted #C9BCA2;padding:4px 2px}
+  .stats .row b{font-family:'Unbounded','Noto Sans SC',sans-serif;font-size:12px;text-align:right}
+  .stats .row.total b{color:#B37A16;font-size:13.5px}
+  #rankTitle{color:#E8A33D}
+  #rankSub{color:#6E655A;font-weight:700;font-size:13px;margin-top:6px}
+  .recLine{display:none;margin:8px auto 0;font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:13px;color:#C4453B}
+  .recLine.on{display:block;animation:recPop .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes recPop{from{transform:scale(.6);opacity:0}}
+
+  .setup{display:flex;gap:12px;margin:2px 0 10px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+  .setupCol{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .setLabel{font-size:10px;font-weight:700;letter-spacing:.14em;color:#8A7F70}
+  #nameInput{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:15px;text-align:center;width:160px;padding:8px 10px;border:3px solid #2E2A26;border-radius:14px;background:#fff;color:#2E2A26;outline:none;box-shadow:0 4px 0 #2E2A26;transition:background .15s}
+  #nameInput:focus{background:#FFF6DF}
+  .skinSel{display:flex;align-items:center;gap:6px;background:#F3ECD9;border:3px solid #2E2A26;border-radius:16px;padding:4px 7px;box-shadow:0 4px 0 #2E2A26}
+  #skinPrev{display:block;width:104px;height:60px;border-radius:10px;cursor:pointer}
+  .arrowBtn{width:30px;height:42px;border:2.5px solid #2E2A26;border-radius:10px;background:#FBF4E2;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#2E2A26;box-shadow:0 2px 0 #2E2A26;transition:transform .1s,box-shadow .1s;flex:none}
+  .arrowBtn:active{transform:translateY(2px);box-shadow:none}
+  .arrowBtn svg{width:14px;height:14px}
+  #skinName{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:12px;color:#B37A16;min-height:15px}
+  .sizeTag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 10px;border-radius:9px;border:2px solid #2E2A26;color:#FBF4E2}
+  .sizeTag.big{background:#C4453B}.sizeTag.med{background:#3E7CB8}.sizeTag.small{background:#2F8F83}
+  #skinPerk{font-size:10px;font-weight:700;color:#4C7A3F;max-width:250px;min-height:24px;line-height:1.3}
+  .optRow{display:flex;gap:8px;justify-content:center;margin:5px 0 12px;flex-wrap:wrap}
+  .optBtn{font-family:'Comfortaa','Noto Sans SC',sans-serif;background:#F3ECD9;border:3px solid #2E2A26;border-radius:14px;box-shadow:0 4px 0 #2E2A26;padding:7px 11px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:120px;text-align:center;transition:background .15s,transform .1s,box-shadow .1s}
+  .optBtn b{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:12.5px;color:#2E2A26}
+  .optBtn span{font-size:9px;font-weight:700;color:#8A7F70}
+  .optBtn.on{background:#F2A93B}
+  .optBtn.on span{color:#7A5A16}
+  .optBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #2E2A26}
+  .optBtn.mapBtn.on{background:#8FB56B}
+  .optBtn.mapBtn.on span{color:#3E5A28}
+
+  #hud{position:fixed;inset:0;pointer-events:none;transition:opacity .4s;z-index:20}
+  .hcard{position:fixed;background:rgba(251,244,226,.94);border:2.5px solid #2E2A26;border-radius:16px;box-shadow:0 3px 0 #2E2A26;padding:8px 12px}
+  .hlabel{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:#8A7F70;display:flex;align-items:center;gap:5px}
+  .hlabel svg{width:13px;height:13px}
+  #cardBladder{left:14px;top:14px;width:180px}
+  #cardBark{left:14px;top:106px;width:180px}
+  .statBar{margin-top:5px;height:16px;border:2px solid #2E2A26;border-radius:10px;background:#EDE4CE;overflow:hidden;position:relative}
+  .statFill{position:absolute;top:2px;left:2px;bottom:2px;width:70%;border-radius:7px;transition:width .12s linear}
+  #bladderFill{background:#F2C94C}
+  #barkFill{background:#D97B4A}
+  .statFill::after{content:'';position:absolute;left:3px;right:3px;top:2px;height:4px;border-radius:3px;background:rgba(255,255,255,.45)}
+  .statReady{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#7A6414;opacity:0;transition:opacity .3s}
+  .statBar.full .statReady{opacity:1}
+  #cardTerr{left:50%;top:14px;transform:translateX(-50%);text-align:center;min-width:150px}
+  #terrPct{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:25px;line-height:1.1}
+  #terrSub{font-size:10px;font-weight:700;color:#8A7F70;margin-top:2px;display:flex;gap:5px;justify-content:center;align-items:center}
+  #terrSub svg{width:12px;height:12px;color:#B37A16}
+  #cardRight{right:14px;top:14px;text-align:right;min-width:110px}
+  #timer{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:25px;line-height:1.1}
+  #timer.low{color:#C4453B;animation:pulse .5s infinite alternate}
+  @keyframes pulse{to{transform:scale(1.12)}}
+  #ptsRow{font-size:10px;font-weight:700;color:#8A7F70;margin-top:3px}
+  #ptsRow b{color:#2E2A26;font-size:12.5px}
+  .hudIco{pointer-events:auto;position:fixed;width:40px;height:40px;border-radius:12px;background:rgba(251,244,226,.94);border:2.5px solid #2E2A26;box-shadow:0 3px 0 #2E2A26;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2E2A26}
+  .hudIco:active{transform:translateY(2px);box-shadow:0 1px 0 #2E2A26}
+  .hudIco svg{width:20px;height:20px;pointer-events:none}
+  #btnSound{right:14px;top:112px}
+  #btnPause{right:14px;top:160px;display:none}
+  body.touch #btnPause{display:flex}
+  #cardMap{left:14px;bottom:14px;padding:7px}
+  #cardMap .hlabel{margin-bottom:5px}
+  #minimap{display:block;border:2px solid #2E2A26;border-radius:8px;background:#9AB57A}
+  #hint{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(251,244,226,.94);border:2.5px solid #2E2A26;border-radius:14px;box-shadow:0 3px 0 #2E2A26;padding:8px 16px;font-size:11.5px;font-weight:700;color:#57503F;transition:opacity .8s;white-space:nowrap}
+  #toasts{position:fixed;left:50%;top:90px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+  .toast{background:#FBF4E2;border:2.5px solid #2E2A26;border-radius:14px;box-shadow:0 3px 0 #2E2A26;padding:8px 18px;font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:12px;opacity:0;transform:translateY(-10px) scale(.9);transition:all .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+  .toast.on{opacity:1;transform:none}
+  .toast.gold{background:#F2C94C}
+  .toast.slate{background:#8B98AA;color:#FBF4E2}
+  .toast.red{background:#C4453B;color:#FBF4E2}
+
+  #peeBtn{pointer-events:auto;display:none;position:fixed;right:22px;bottom:30px;width:92px;height:92px;border-radius:50%;background:#F2C94C;border:3px solid #2E2A26;box-shadow:0 5px 0 #2E2A26;font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:12px;color:#2E2A26;z-index:22;cursor:pointer}
+  #peeBtn:active{transform:translateY(3px);box-shadow:0 2px 0 #2E2A26}
+  #barkBtn{pointer-events:auto;display:none;position:fixed;right:126px;bottom:44px;width:66px;height:66px;border-radius:50%;background:#D97B4A;border:3px solid #2E2A26;box-shadow:0 4px 0 #2E2A26;font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:11px;color:#2E2A26;z-index:22;cursor:pointer}
+  #barkBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #2E2A26}
+  #barkBtn.cd{background:#B7AFA0;color:#6E655A}
+  #joyBase,#joyStick{display:none;position:fixed;border-radius:50%;pointer-events:none;z-index:21}
+  #joyBase{width:116px;height:116px;border:3px solid rgba(251,244,226,.8);background:rgba(251,244,226,.14)}
+  #joyStick{width:52px;height:52px;background:rgba(251,244,226,.85);border:3px solid #2E2A26}
+  body.touch #peeBtn,body.touch #barkBtn{display:block}
+  body.touch #hint{display:none}
+  #keysHintTouch{display:none}
+  body.touch .keys-hint{display:none}
+  body.touch #keysHintTouch{display:block}
+
+  /* ---------- настройки ---------- */
+  #screenSet .card{max-width:460px}
+  .setRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;font-weight:700;font-size:13.5px;color:#57503F}
+  .setRow>span{flex:none}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:16px;border:2.5px solid #2E2A26;border-radius:10px;background:#EDE4CE;outline:none;min-width:120px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:#F2A93B;border:2.5px solid #2E2A26;box-shadow:0 2px 0 #2E2A26;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#F2A93B;border:2.5px solid #2E2A26;cursor:pointer}
+  #volVal{font-family:'Unbounded',sans-serif;font-size:12px;min-width:44px;text-align:right}
+  .langRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .langBtn{font-family:'Comfortaa','Noto Sans SC',sans-serif;font-weight:700;font-size:13px;background:#F3ECD9;border:2.5px solid #2E2A26;border-radius:12px;box-shadow:0 3px 0 #2E2A26;padding:8px 14px;cursor:pointer;color:#2E2A26;transition:background .15s,transform .1s,box-shadow .1s}
+  .langBtn.on{background:#F2A93B}
+  .langBtn:active{transform:translateY(2px);box-shadow:0 1px 0 #2E2A26}
+
+  /* ---------- обучение ---------- */
+  #screenTut .card{max-width:460px}
+  #tutIcon{width:80px;height:80px;margin:2px auto 8px;display:block;color:#B37A16}
+  #tutIcon svg{width:100%;height:100%}
+  .tutT{font-family:'Unbounded','Noto Sans SC',sans-serif;font-weight:800;font-size:19px;margin:2px 0 8px}
+  .tutD{font-size:13px;font-weight:700;color:#57503F;line-height:1.5;max-width:420px;margin:0 auto 12px}
+  .tutDots{display:flex;gap:7px;justify-content:center;margin:4px 0 14px}
+  .tutDots i{width:10px;height:10px;border-radius:50%;border:2.5px solid #2E2A26;background:transparent;transition:background .2s}
+  .tutDots i.on{background:#F2A93B}
+  #tutStepNo{font-size:10px;font-weight:700;letter-spacing:.14em;color:#8A7F70;margin-top:2px}
+
+  @media (max-width:640px){
+    .hcard{padding:6px 8px}
+    #cardBladder,#cardBark{width:112px}
+    #terrPct,#timer{font-size:18px}
+    #cardTerr{min-width:0}#cardRight{min-width:0}
+    #spotCnt{font-size:8.5px}
+    #cardMap{display:none}
+    .optBtn{min-width:100px}
+    .card{padding:18px 14px}
+    .btn{font-size:15px;padding:12px 24px}
+  }
+  .achGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;text-align:left}
+  .achCard{display:flex;gap:10px;align-items:center;background:#F3ECD9;border:2.5px solid #2E2A26;border-radius:14px;box-shadow:0 3px 0 #2E2A26;padding:8px 10px}
+  .achCard .achIc{font-size:22px;flex:0 0 auto}
+  .achCard b{display:block;font-size:12.5px;line-height:1.15}
+  .achCard span{display:block;font-size:11px;color:#6E655A;font-weight:700;line-height:1.2;margin-top:2px}
+  .achCard.lk{opacity:.55;filter:grayscale(1)}
+  #statLine{font-size:12px;font-weight:700;color:#6E655A;margin:4px 0 8px}
+  .verTag{opacity:.55;font-size:11px;font-weight:700;color:#6E655A;margin-top:10px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ======================= HUD ======================= -->
+<div id="hud" class="hidden">
+  <div class="hcard" id="cardBladder">
+    <div class="hlabel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C12 3 6 10.4 6 14.5A6 6 0 0 0 18 14.5C18 10.4 12 3 12 3Z"/></svg><span data-i="bladder">ПУЗЫРЬ</span></div>
+    <div class="statBar" id="bladderBar"><div class="statFill" id="bladderFill"></div><span class="statReady" data-i="ready">ГОТОВ!</span></div>
+  </div>
+
+  <div class="hcard" id="cardBark">
+    <div class="hlabel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10v4h3l6 5V5L7 10H4Zm14.6-1.4a5.5 5.5 0 0 1 0 6.8l-1.5-1.3a3.5 3.5 0 0 0 0-4.2l1.5-1.3Z"/></svg><span data-i="barkHud">ЛАЙ (E)</span></div>
+    <div class="statBar" id="barkBar"><div class="statFill" id="barkFill"></div><span class="statReady" data-i="ready2">ГОТОВ!</span></div>
+  </div>
+
+  <div class="hcard" id="cardTerr">
+    <div id="terrPct">0%</div>
+    <div class="hlabel" style="justify-content:center" data-i="terr">ТЕРРИТОРИЯ</div>
+    <div id="terrSub">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <span id="spotCnt">0/12</span>
+    </div>
+  </div>
+
+  <div class="hcard" id="cardRight">
+    <div id="timer">1:30</div>
+    <div class="hlabel" style="justify-content:flex-end" data-i="time">ВРЕМЯ</div>
+    <div id="ptsRow"><span data-i="points">ОЧКИ</span> <b id="ptsVal">0</b></div>
+  </div>
+
+  <button class="hudIco" id="btnSound" data-ti="sndTitle">
+    <svg id="icoOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9a4.5 4.5 0 0 1 0 6"/></svg>
+    <svg id="icoOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:none"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor" stroke="none"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+  </button>
+  <button class="hudIco" id="btnPause" data-ti="pauseTitle">
+    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.4"/><rect x="14" y="4" width="4" height="16" rx="1.4"/></svg>
+  </button>
+
+  <div class="hcard" id="cardMap">
+    <div class="hlabel" data-i="marksMap">КАРТА МЕТОК</div>
+    <canvas id="minimap" width="156" height="104"></canvas>
+  </div>
+
+  <div id="hint"><kbd>W A S D</kbd> — бег · держи <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>P</kbd> — пауза</div>
+  <div id="toasts"></div>
+  <button id="barkBtn" data-i="btnBark">ЛАЙ</button>
+  <button id="peeBtn" data-i="btnPee">МЕТИТЬ</button>
+  <div id="joyBase"></div><div id="joyStick"></div>
+</div>
+
+<!-- ======================= ТИТУЛЬНЫЙ ЭКРАН ======================= -->
+<div id="screenTitle" class="screen">
+  <div class="card">
+    <div class="paws">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+    </div>
+    <h1 id="titleH1">ГЛАВНЫЙ <span>ПЁС</span></h1>
+    <p class="tagline" data-i="tagline">карта, кличка, порода, сложность — и в бой за территорию</p>
+
+    <div class="setup">
+      <div class="setupCol">
+        <div class="setLabel" data-i="setName">КЛИЧКА</div>
+        <input id="nameInput" maxlength="12" placeholder="Бобик" autocomplete="off" enterkeyhint="go">
+      </div>
+      <div class="setupCol">
+        <div class="setLabel" data-i="setBreed">ПОРОДА (размер имеет значение)</div>
+        <div class="skinSel">
+          <button type="button" class="arrowBtn" id="skinLeft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <canvas id="skinPrev" width="208" height="120"></canvas>
+          <button type="button" class="arrowBtn" id="skinRight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div id="skinName">…</div>
+        <div id="skinSize" class="sizeTag med">СРЕДНЯЯ</div>
+        <div id="skinPerk">…</div>
+      </div>
+    </div>
+
+    <div class="setLabel" style="margin-bottom:5px" data-i="setMap">КАРТА</div>
+    <div class="optRow" id="mapRow">
+      <button type="button" class="optBtn mapBtn" data-m="yards"><b data-i="m_yards">ДВОРЫ</b><span data-i="m_yardsS">дома, парк, перекрёсток</span></button>
+      <button type="button" class="optBtn mapBtn" data-m="lot"><b data-i="m_lot">РЫНОК</b><span data-i="m_lotS">асфальт, машины, палатки</span></button>
+      <button type="button" class="optBtn mapBtn" data-m="field"><b data-i="m_field">ПУСТЫРЬ</b><span data-i="m_fieldS">сараи, стога, бочки</span></button>
+    </div>
+
+    <div class="setLabel" style="margin-bottom:5px" data-i="setDiff">СЛОЖНОСТЬ</div>
+    <div class="optRow">
+      <button type="button" class="optBtn" data-d="easy"><b data-i="d_easy">ЩЕНОК</b><span data-i="d_easyS">120 сек · без Барбоса</span></button>
+      <button type="button" class="optBtn on" data-d="normal"><b data-i="d_normal">ПЁС</b><span data-i="d_normalS">90 сек · Барбос придёт</span></button>
+      <button type="button" class="optBtn" data-d="hard"><b data-i="d_hard">ВОЖАК</b><span data-i="d_hardS">75 сек · Барбос + Мурзик</span></button>
+    </div>
+
+    <ul class="rules">
+      <li><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+        <span class="ih" data-i="rule1">…</span></li>
+      <li><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10v4h3l6 5V5L7 10H4Zm14.6-1.4a5.5 5.5 0 0 1 0 6.8l-1.5-1.3a3.5 3.5 0 0 0 0-4.2l1.5-1.3Z"/></svg>
+        <span class="ih" data-i="rule2">…</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor"/></svg>
+        <span class="ih" data-i="rule3">…</span></li>
+    </ul>
+    <div class="btnRow">
+      <button class="btn" id="btnPlay" data-i="play">ПОБЕЖАЛИ!</button>
+      <button class="btn ghost" id="btnAch">🏆 <span data-i="ach">ТРОФЕИ</span></button>
+      <button class="btn ghost" id="btnSet">⚙ <span data-i="settings">НАСТРОЙКИ</span></button>
+    </div>
+    <p class="keys-hint" id="keysHint"><kbd>WASD</kbd> — бег · <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>Enter</kbd> — старт</p>
+    <p class="keys-hint ih" id="keysHintTouch" data-i="keysHintTouch">Свайп по экрану — бег · <b>МЕТИТЬ</b> — лужа · <b>ЛАЙ</b> — отпугнуть · <b>II</b> — пауза</p>
+    <div class="verTag" id="verTag">v1.4.0</div>
+  </div>
+</div>
+
+<!-- ======================= ЭКРАН ИТОГОВ ======================= -->
+<div id="screenEnd" class="screen hidden">
+  <div class="card">
+    <p class="tagline" style="margin-top:0" id="endTag">…</p>
+    <h1 id="rankTitle">…</h1>
+    <p id="rankSub">…</p>
+    <div class="recLine" id="recLine">★</div>
+    <div class="stats" id="statsBox"></div>
+    <div class="btnRow">
+      <button class="btn" id="btnAgain" data-i="again">ЕЩЁ РАЗ!</button>
+      <button class="btn ghost" id="btnShare">📤 <span data-i="share">ПОДЕЛИТЬСЯ</span></button>
+      <button class="btn ghost" id="btnMenuEnd" data-i="toMenu">в главное меню</button>
+    </div>
+    <p class="keys-hint" id="againHint"><kbd>Enter</kbd> — играть снова</p>
+  </div>
+</div>
+
+<!-- ======================= ПАУЗА ======================= -->
+<div id="screenPause" class="screen hidden">
+  <div class="card" style="max-width:360px">
+    <h1 data-i="pauseT">ПАУЗА</h1>
+    <p class="tagline" data-i="pauseS">пёс ждёт команды…</p>
+    <button class="btn" id="btnResume" data-i="resume">ПРОДОЛЖИТЬ</button>
+    <p style="height:10px"></p>
+    <div class="btnRow">
+      <button class="btn ghost" id="btnRestart" data-i="restart">начать заново</button>
+      <button class="btn ghost" id="btnSetPause" data-i="settings">настройки</button>
+      <button class="btn ghost" id="btnMenuPause" data-i="toMenu">в главное меню</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= НАСТРОЙКИ ======================= -->
+<div id="screenSet" class="screen hidden">
+  <div class="card">
+    <h1 style="font-size:clamp(20px,4vw,28px)" data-i="setT">НАСТРОЙКИ</h1>
+    <p class="tagline" style="margin:6px 0 4px" data-i="setSub">звук, язык и обучение</p>
+
+    <div class="setRow">
+      <span data-i="volume">Громкость</span>
+      <input type="range" id="volSlider" min="0" max="100" step="5" value="80">
+      <b id="volVal">80%</b>
+    </div>
+    <div class="setRow">
+      <span data-i="music">Музыка</span>
+      <input type="range" id="musSlider" min="0" max="100" step="5" value="40">
+      <b id="musVal">40%</b>
+    </div>
+    <div class="setRow">
+      <span data-i="vibro">Вибрация</span>
+      <button type="button" class="langBtn" id="vibBtn">ВКЛ</button>
+    </div>
+    <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+      <span style="text-align:center" data-i="gfx">Графика</span>
+      <div class="langRow">
+        <button type="button" class="langBtn gfxBtn" data-q="auto" data-i="qAuto">АВТО</button>
+        <button type="button" class="langBtn gfxBtn" data-q="high" data-i="qHigh">ВЫСОКОЕ</button>
+        <button type="button" class="langBtn gfxBtn" data-q="low" data-i="qLow">БЫСТРОЕ</button>
+      </div>
+    </div>
+
+    <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+      <span style="text-align:center" data-i="language">Язык</span>
+      <div class="langRow">
+        <button type="button" class="langBtn" data-l="ru">РУС</button>
+        <button type="button" class="langBtn" data-l="en">ENG</button>
+        <button type="button" class="langBtn" data-l="zh">中文</button>
+        <button type="button" class="langBtn" data-l="es">ESP</button>
+      </div>
+    </div>
+
+    <div class="btnRow" style="margin-top:12px">
+      <button class="btn ghost" id="btnTutReplay" data-i="showTut">показать обучение</button>
+      <button class="btn" id="btnSetBack" data-i="back">назад</button>
+    </div>
+    <div class="verTag" id="verTag2">v1.4.0</div>
+  </div>
+</div>
+
+<!-- ======================= ОБУЧЕНИЕ ======================= -->
+<div id="screenTut" class="screen hidden">
+  <div class="card">
+    <div id="tutIcon"></div>
+    <div id="tutStepNo">1/5</div>
+    <div class="tutT" id="tutT">…</div>
+    <div class="tutD" id="tutD">…</div>
+    <div class="tutDots" id="tutDots"></div>
+    <div class="btnRow">
+      <button class="btn ghost" id="btnTutSkip" data-i="tutSkip">пропустить</button>
+      <button class="btn" id="btnTutNext" data-i="tutNext">ДАЛЕЕ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ДОСТИЖЕНИЯ ======================= -->
+<div id="screenAch" class="screen hidden">
+  <div class="card">
+    <h1 style="font-size:clamp(20px,4vw,28px)" data-i="achT">ТРОФЕИ</h1>
+    <p class="tagline" style="margin:4px 0 8px" data-i="achSub">12 наград верного пса</p>
+    <div class="achGrid" id="achList"></div>
+    <div id="statLine">…</div>
+    <div class="btnRow"><button class="btn" id="btnAchBack" data-i="back">назад</button></div>
+  </div>
+</div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+'use strict';
+/* ================================================================
+   ГЛАВНЫЙ ПЁС — мини-игра про метки территории
+   3 карты, 9 пород, 3 сложности, Рекс, кот Мурзик и Барбос
+   со системой схваток. Всё рисуется кодом, звук — WebAudio.
+   v1.1: i18n (RU/EN/ZH/ES), настройки с громкостью, обучение,
+   выход в меню, оптимизация под Android (WebView-порт).
+================================================================ */
+
+// ---------- версия ----------
+const APP_VER='1.4.0';
+
+// ---------- утилиты ----------
+const TAU=Math.PI*2;
+const rnd=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+function lerpAng(a,b,t){let d=(b-a+Math.PI)%TAU;if(d<0)d+=TAU;d-=Math.PI;return a+d*t;}
+function circ(g,x,y,r){g.beginPath();g.arc(x,y,r,0,TAU);g.fill();}
+function ell(g,x,y,rx,ry){g.beginPath();g.ellipse(x,y,rx,ry,0,0,TAU);g.fill();}
+
+const W=1680,H=1120,CELL=14,GW=W/CELL|0,GH=H/CELL|0;
+const EMPTY=0,OWN=1,REX=2,BARB=3,BLOCKED=4;
+
+// профиль производительности: на тач-устройствах режем частицы и DPR
+const IS_ANDROID=/Android/i.test(navigator.userAgent);
+const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0||IS_ANDROID;
+const LOW_END=IS_TOUCH&&(navigator.hardwareConcurrency||8)<=4;
+const LOWFI=IS_TOUCH; // cap частиц и прочие урезания
+const DROP_CAP=LOWFI?180:260;
+
+// ---------- DOM ----------
+const cv=document.getElementById('game'),ctx=cv.getContext('2d',{alpha:false,powerPreference:'high-performance'});
+const mmC=document.getElementById('minimap'),mm=mmC.getContext('2d');
+const $=id=>document.getElementById(id);
+const hud=$('hud'),bladderFill=$('bladderFill'),bladderBar=$('bladderBar'),
+      barkFill=$('barkFill'),barkBar=$('barkBar'),
+      terrPct=$('terrPct'),spotCnt=$('spotCnt'),timerEl=$('timer'),ptsVal=$('ptsVal'),
+      toastsEl=$('toasts'),hintEl=$('hint'),nameInput=$('nameInput'),
+      barkBtnEl=$('barkBtn'),screenTitleEl=$('screenTitle'),screenEndEl=$('screenEnd'),
+      screenPauseEl=$('screenPause'),screenSetEl=$('screenSet'),screenTutEl=$('screenTut');
+
+// ---------- сохранения ----------
+let save={};
+try{save=JSON.parse(localStorage.getItem('topdog-save')||'{}')}catch(e){}
+const OLD_SAVE=save.v===3||save.v===4;
+let qSetting=(['auto','high','low'].indexOf(save.q)>=0)?save.q:'auto'; // Авто/Высокое/Быстрое
+
+// ---------- ЛОКАЛИЗАЦИЯ ----------
+const L10N={};
+L10N.ru={
+  code:'ru',docTitle:'Главный пёс — мини-игра про метки',
+  h1:'ГЛАВНЫЙ <span>ПЁС</span>',
+  ui:{
+    tagline:'карта, кличка, порода, сложность — и в бой за территорию',
+    bladder:'ПУЗЫРЬ',barkHud:'ЛАЙ (E)',ready:'ГОТОВ!',ready2:'ГОТОВ!',
+    terr:'ТЕРРИТОРИЯ',time:'ВРЕМЯ',points:'ОЧКИ',marksMap:'КАРТА МЕТОК',
+    hint:'<kbd>W A S D</kbd> — бег · держи <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>P</kbd> — пауза',
+    btnPee:'МЕТИТЬ',btnBark:'ЛАЙ',
+    setName:'КЛИЧКА',setBreed:'ПОРОДА (размер имеет значение)',setMap:'КАРТА',setDiff:'СЛОЖНОСТЬ',
+    m_yards:'ДВОРЫ',m_yardsS:'дома, парк, перекрёсток',
+    m_lot:'РЫНОК',m_lotS:'асфальт, машины, палатки',
+    m_field:'ПУСТЫРЬ',m_fieldS:'сараи, стога, бочки',
+    d_easy:'ЩЕНОК',d_easyS:'120 сек · без Барбоса',
+    d_normal:'ПЁС',d_normalS:'90 сек · Барбос придёт',
+    d_hard:'ВОЖАК',d_hardS:'75 сек · Барбос + Мурзик',
+    rule1:'Рекс перебивает метки. <b>Барбос</b> — цепной громила: догонит и потаскает. Столкнётесь — будет <b>схватка</b>: крупным псам выиграть проще, малым лучше бежать',
+    rule2:'<b>Лай (E)</b> разгоняет Рекса и Мурзика. Барбоса отпугнут только <b>крупные</b> псы — средним и малым он в ответ нарежет круги! Барбос и Рекс и сами не прочь подраться',
+    rule3:'Гидранты, фонари, урны — 12 крутых мест. Миски и косточки восполняют пузырь. Побеждает тот, кто метил больше!',
+    play:'ПОБЕЖАЛИ!',settings:'НАСТРОЙКИ',
+    keysHint:'<kbd>WASD</kbd> — бег · <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>Enter</kbd> — старт',
+    keysHintTouch:'Свайп по экрану — бег · <b>МЕТИТЬ</b> — лужа · <b>ЛАЙ</b> — отпугнуть · <b>II</b> — пауза',
+    pauseT:'ПАУЗА',pauseS:'пёс ждёт команды…',resume:'ПРОДОЛЖИТЬ',restart:'начать заново',toMenu:'в главное меню',
+    setT:'НАСТРОЙКИ',setSub:'звук, язык и обучение',volume:'Громкость',language:'Язык',
+    showTut:'показать обучение',back:'назад',tutSkip:'пропустить',tutNext:'ДАЛЕЕ',tutGo:'В БОЙ!',
+    again:'ЕЩЁ РАЗ!',againHint:'<kbd>Enter</kbd> — играть снова',
+    sndTitle:'Звук (M)',pauseTitle:'Пауза (P)',
+    endTagTime:'время вышло!',
+    stMap:'Карта',stBreed:'Порода',stTerr:'Территория',stSpots:'Крутые места',
+    stBase:'Базовые очки',stTotal:'ИТОГО',stWins:'побед',stRex:'Рекс прогнан',
+    stBrawls:'Схваток с Барбосом',stCat:'Мурзик разогнан',stPigeons:'Голуби разогнаны',
+    stPee:'Времени метил',sec:'сек',tutStepOf:(i,n)=>'Шаг '+(i+1)+' из '+n,
+    music:'Музыка',vibro:'Вибрация',vibOn:'ВКЛ',vibOff:'ВЫКЛ',gfx:'Графика',qAuto:'АВТО',qHigh:'ВЫСОКОЕ',qLow:'БЫСТРОЕ',
+    ach:'ТРОФЕИ',achT:'ТРОФЕИ',achSub:'12 наград верного пса',share:'ПОДЕЛИТЬСЯ',shareOk:'Скопировано в буфер!',
+  },
+  ach:{
+    walk1:['Первая прогулка','Сыграй свой первый раунд'],
+    yard:['Хозяин двора','Отметь 7.5% территории за раунд'],
+    spots5:['Коллекционер','Захвати 5 крутых мест за раунд'],
+    all12:['Звезда района','Захвати все 12 крутых мест'],
+    rex15:['Гроза Рекса','Прогони Рекса 15 раз суммарно'],
+    barb:['Победа над громилой','Выиграй схватку у Барбоса'],
+    cat:['Кот прогнан','Разгони Мурзика'],
+    dove10:['Птичий погром','Разгони 10 голубей суммарно'],
+    rich:['Первая тысяча','Набери 1000 очков за раунд'],
+    boss:['ГЛАВНЫЙ ПЁС','Отметь 18% территории за раунд'],
+    runs10:['Верный пёс','Сыграй 10 раундов'],
+    hard:['Вожак стаи','10%+ территории на сложности ВОЖАК'],
+  },
+  a_new:n=>'🏆 ДОСТИЖЕНИЕ: '+n,
+  ast:(r,b)=>'Раундов: '+r+' · Лучший счёт: '+b,
+  bonus:m=>'Бонус сложности ×'+m, rec:l=>'Рекорд («'+l+'»)',
+  newRec:n=>'★ НОВЫЙ РЕКОРД: '+n,
+  maps:{yards:'ДВОРЫ',lot:'РЫНОК',field:'ПУСТЫРЬ'},
+  diffs:{easy:'ЩЕНОК',normal:'ПЁС',hard:'ВОЖАК'},
+  sizes:{big:'КРУПНАЯ',med:'СРЕДНЯЯ',small:'МАЛАЯ'},
+  sizeDog:s=>s+' ПЁС',
+  spots:{hydrant:'ГИДРАНТ',lamp:'ФОНАРЬ',can:'УРНА'},
+  rival:'Рекс',barb:'Барбос',cat:'Мурзик',defName:'Бобик',
+  tStart:(n,b)=>n+' ('+b+'), БЕГИ И МЕТЬ!',
+  tBarbSoon:'СЮДА ИДЁТ БАРБОС — БОЛЬШОЙ И ЗЛОЙ!',
+  tCatSoon:'МУРЗИК ЗАКАПЫВАЕТ ВАШИ МЕТКИ!',
+  t10:'ОСТАЛОСЬ 10 СЕКУНД!',
+  tEmpty:'ПУЗЫРЬ ПУСТ! Миска или косточка помогут',
+  tWater:'ВОДА! ПУЗЫРЬ ПОЛОН',
+  tRexChased:v=>'РЕКС ПРОГНАН! +'+v,
+  tCatChased:v=>'МУРЗИК ПРОГНАН! +'+v,
+  tSpotNew:(l,v)=>l+' — ТВОЙ! +'+v,
+  tSpotRex:v=>'ОТБИТО У РЕКСА! +'+v,
+  tRexStole:l=>'РЕКС ОТБИЛ: '+l,
+  tAllSpots:v=>'ВСЕ 12 КРУТЫХ МЕСТ ТВОИ! +'+v,
+  tLoseFight:'БАРБОС ПОБЕДИЛ В СХВАТКЕ! Пузырь и метки потеряны',
+  tWinFight:(n,v)=>n+' ПОБЕДИЛ БАРБОСА! +'+v,
+  tBarbVsRex:'БАРБОС ГОНЯЕТ РЕКСА ПО ВСЕМУ ДВОРУ!',
+  tRexVsBarb:'РЕКС ОТСТОЯЛ СЕБЯ ПРОТИВ БАРБОСА!',
+  tBarbOut:'БАРБОС ВЫШЕЛ НА ОХОТУ!',
+  tBarkBig:v=>'БАРБОС Ошалел ОТ ТАКОЙ ДЕРЗОСТИ! +'+v,
+  tBarkSmall:'БАРБОСА НЕ ИСПУГАТЬ! БЕГИ!',
+  tDiff:l=>'СЛОЖНОСТЬ: '+l, tMap:m=>'КАРТА: '+m,
+  ranks:[
+    [18,'ГЛАВНЫЙ ПЁС РАЙОНА','Легенда. Даже Барбос обходит тебя стороной.'],
+    [12,'ГРОЗА КВАРТАЛА','Рекс делает вид, что не узнал тебя.'],
+    [7.5,'ХОЗЯИН ДВОРА','Соседские собаки уважительно виляют хвостами.'],
+    [4,'ДВОРОВЫЙ ПЁС','Свой двор пометил — уже неплохо!'],
+    [0,'ТРЕВОЖНЫЙ ЩЕНОК','Ты больше прячешься за забором, чем метишь…'],
+  ],
+  tut:[
+    {t:'БЕГАЙ',d:'Коснись экрана — появится джойстик. Веди палец в нужную сторону, и пёс побежит следом.'},
+    {t:'МЕТЬ',d:'Держи большую жёлтую кнопку МЕТИТЬ — пёс оставит лужу и захватит территорию. Можно даже на бегу!'},
+    {t:'ЛАЙ',d:'Кнопка ЛАЙ разгоняет Рекса и кота Мурзика. Но Барбоса отпугнут только КРУПНЫЕ псы — если ты мал, лучше беги!'},
+    {t:'КРУТЫЕ МЕСТА',d:'Встань рядом с гидрантом, фонарём или урной и меть — захватишь место с бонусом. Всего их 12!'},
+    {t:'ПУЗЫРЬ И ВРЕМЯ',d:'Следи за пузырём: миски с водой и косточки его восполняют. Успей наметить как можно больше до конца времени!'},
+  ],
+  skins:{
+    dvorn:{n:'Дворняга',p:'Авторитет — прогон врагов ×2 очков, убегают в 1.5× дальше'},
+    corgi:{n:'Корги',p:'Большой характер — метки как у средней собаки, скорость +15%'},
+    poodle:{n:'Пудель',p:'Интеллект — метки на бегу рисует в 1.6× чаще'},
+    husky:{n:'Хаски',p:'Выносливая — пузырь тратится на 30% медленнее'},
+    lab:{n:'Лабрадор',p:'Водолюб — миски с водой без перезарядки, бег +5%'},
+    dalm:{n:'Далматин',p:'Спринтер — бегает на 20% быстрее'},
+    shepherd:{n:'Немецкая овчарка',p:'Служебная — крутые места захватывает в 1.6× быстрее'},
+    caucas:{n:'Кавказская овчарка',p:'Охранник — пугает врагов и Барбоса с 60% большего расстояния'},
+    alabai:{n:'Алабай',p:'Волкодав — враги вдвое реже целятся в ваши метки'},
+  },
+};
+L10N.en={
+  code:'en',docTitle:'Top Dog — mini marking game',
+  h1:'TOP <span>DOG</span>',
+  ui:{
+    tagline:'map, name, breed, difficulty — then fight for territory',
+    bladder:'BLADDER',barkHud:'BARK (E)',ready:'READY!',ready2:'READY!',
+    terr:'TERRITORY',time:'TIME',points:'POINTS',marksMap:'MARK MAP',
+    hint:'<kbd>W A S D</kbd> — run · hold <kbd>Space</kbd> — mark · <kbd>E</kbd> — bark · <kbd>P</kbd> — pause',
+    btnPee:'MARK',btnBark:'BARK',
+    setName:'NAME',setBreed:'BREED (size matters)',setMap:'MAP',setDiff:'DIFFICULTY',
+    m_yards:'YARDS',m_yardsS:'houses, park, crossing',
+    m_lot:'MARKET',m_lotS:'asphalt, cars, tents',
+    m_field:'WASTELAND',m_fieldS:'sheds, haystacks, barrels',
+    d_easy:'PUPPY',d_easyS:'120 sec · no Barbos',
+    d_normal:'DOG',d_normalS:'90 sec · Barbos is coming',
+    d_hard:'ALPHA',d_hardS:'75 sec · Barbos + Murzik',
+    rule1:'Rex repaints your marks. <b>Barbos</b> is a chained brute: he will catch you and rough you up. If you meet — there will be a <b>brawl</b>: big dogs win easier, small ones better run',
+    rule2:'<b>Bark (E)</b> drives away Rex and Murzik. Only <b>big</b> dogs scare Barbos — for medium and small he circles right back! Barbos and Rex love a good fight too',
+    rule3:'Hydrants, lamps, bins — 12 cool spots. Bowls and bones refill the bladder. Whoever marked more wins!',
+    play:"LET'S GO!",settings:'SETTINGS',
+    keysHint:'<kbd>WASD</kbd> — run · <kbd>Space</kbd> — mark · <kbd>E</kbd> — bark · <kbd>Enter</kbd> — start',
+    keysHintTouch:'Swipe the screen — run · <b>MARK</b> — puddle · <b>BARK</b> — scare · <b>II</b> — pause',
+    pauseT:'PAUSED',pauseS:'the dog awaits orders…',resume:'RESUME',restart:'restart',toMenu:'main menu',
+    setT:'SETTINGS',setSub:'sound, language and tutorial',volume:'Volume',language:'Language',
+    showTut:'show tutorial',back:'back',tutSkip:'skip',tutNext:'NEXT',tutGo:'TO BATTLE!',
+    again:'ONE MORE!',againHint:'<kbd>Enter</kbd> — play again',
+    sndTitle:'Sound (M)',pauseTitle:'Pause (P)',
+    endTagTime:'time is up!',
+    stMap:'Map',stBreed:'Breed',stTerr:'Territory',stSpots:'Cool spots',
+    stBase:'Base points',stTotal:'TOTAL',stWins:'wins',stRex:'Rex chased',
+    stBrawls:'Brawls with Barbos',stCat:'Murzik driven off',stPigeons:'Pigeons scattered',
+    stPee:'Time marking',sec:'sec',tutStepOf:(i,n)=>'Step '+(i+1)+' of '+n,
+    music:'Music',vibro:'Vibration',vibOn:'ON',vibOff:'OFF',gfx:'Graphics',qAuto:'AUTO',qHigh:'HIGH',qLow:'FAST',
+    ach:'TROPHIES',achT:'TROPHIES',achSub:'12 awards of a loyal dog',share:'SHARE',shareOk:'Copied to clipboard!',
+  },
+  ach:{
+    walk1:['First walk','Play your first round'],
+    yard:['Master of the yard','Mark 7.5% territory in a round'],
+    spots5:['Collector','Capture 5 cool spots in a round'],
+    all12:['Star of the block','Capture all 12 cool spots'],
+    rex15:['Rex\u2019s nightmare','Chase Rex away 15 times total'],
+    barb:['Giant slayer','Win a brawl against Barbos'],
+    cat:['Cat scared off','Chase Murzik away'],
+    dove10:['Pigeon pandemonium','Scatter 10 pigeons total'],
+    rich:['First thousand','Score 1000 points in a round'],
+    boss:['TOP DOG','Mark 18% territory in a round'],
+    runs10:['Loyal dog','Play 10 rounds'],
+    hard:['Pack leader','10%+ territory on HARD difficulty'],
+  },
+  a_new:n=>'🏆 ACHIEVEMENT: '+n,
+  ast:(r,b)=>'Rounds: '+r+' · Best score: '+b,
+  bonus:m=>'Difficulty bonus ×'+m, rec:l=>'Record ("'+l+'")',
+  newRec:n=>'★ NEW RECORD: '+n,
+  maps:{yards:'YARDS',lot:'MARKET',field:'WASTELAND'},
+  diffs:{easy:'PUPPY',normal:'DOG',hard:'ALPHA'},
+  sizes:{big:'BIG',med:'MEDIUM',small:'SMALL'},
+  sizeDog:s=>s+' DOG',
+  spots:{hydrant:'HYDRANT',lamp:'LAMP',can:'BIN'},
+  rival:'Rex',barb:'Barbos',cat:'Murzik',defName:'Buddy',
+  tStart:(n,b)=>n+' ('+b+'), RUN AND MARK!',
+  tBarbSoon:'BARBOS IS COMING — BIG AND MEAN!',
+  tCatSoon:'MURZIK IS BURYING YOUR MARKS!',
+  t10:'10 SECONDS LEFT!',
+  tEmpty:'BLADDER EMPTY! A bowl or a bone will help',
+  tWater:'WATER! BLADDER FULL',
+  tRexChased:v=>'REX DRIVEN OFF! +'+v,
+  tCatChased:v=>'MURZIK DRIVEN OFF! +'+v,
+  tSpotNew:(l,v)=>l+' IS YOURS! +'+v,
+  tSpotRex:v=>'TAKEN FROM REX! +'+v,
+  tRexStole:l=>'REX TOOK: '+l,
+  tAllSpots:v=>'ALL 12 COOL SPOTS YOURS! +'+v,
+  tLoseFight:'BARBOS WON THE BRAWL! Bladder and marks lost',
+  tWinFight:(n,v)=>n+' BEAT BARBOS! +'+v,
+  tBarbVsRex:'BARBOS CHASES REX ALL OVER THE YARD!',
+  tRexVsBarb:'REX HELD HIS GROUND AGAINST BARBOS!',
+  tBarbOut:'BARBOS IS ON THE HUNT!',
+  tBarkBig:v=>'BARBOS IS STUNNED BY SUCH NERVE! +'+v,
+  tBarkSmall:'YOU CANNOT SCARE BARBOS! RUN!',
+  tDiff:l=>'DIFFICULTY: '+l, tMap:m=>'MAP: '+m,
+  ranks:[
+    [18,'TOP DOG OF THE BLOCK','A legend. Even Barbos crosses the street.'],
+    [12,'TERROR OF THE QUARTER','Rex pretends he did not recognize you.'],
+    [7.5,'MASTER OF THE YARD','Neighbourhood dogs wag their tails with respect.'],
+    [4,'YARD DOG','You marked your own yard — not bad at all!'],
+    [0,'NERVOUS PUPPY','You hide behind the fence more than you mark…'],
+  ],
+  tut:[
+    {t:'RUN',d:'Touch the screen — a joystick appears. Drag your finger where to run and the dog will follow.'},
+    {t:'MARK',d:'Hold the big yellow MARK button — the dog leaves a puddle and claims territory. Even on the run!'},
+    {t:'BARK',d:'The BARK button drives away Rex and Murzik the cat. But only BIG dogs scare Barbos — if you are small, better run!'},
+    {t:'COOL SPOTS',d:'Stand next to a hydrant, lamp or bin and mark — you will capture it for a bonus. There are 12 in total!'},
+    {t:'BLADDER & TIME',d:'Watch the bladder: bowls and bones refill it. Claim as much territory as you can before time runs out!'},
+  ],
+  skins:{
+    dvorn:{n:'Mongrel',p:'Authority — chase rewards ×2, enemies flee 1.5× farther'},
+    corgi:{n:'Corgi',p:'Big character — marks like a medium dog, speed +15%'},
+    poodle:{n:'Poodle',p:'Genius — marks while running 1.6× more often'},
+    husky:{n:'Husky',p:'Endurance — bladder drains 30% slower'},
+    lab:{n:'Labrador',p:'Water lover — bowls refill instantly, speed +5%'},
+    dalm:{n:'Dalmatian',p:'Sprinter — runs 20% faster'},
+    shepherd:{n:'German Shepherd',p:'Working dog — captures cool spots 1.6× faster'},
+    caucas:{n:'Caucasian Shepherd',p:'Guardian — scares enemies and Barbos from 60% farther'},
+    alabai:{n:'Alabai',p:'Wolfhound — enemies target your marks half as often'},
+  },
+};
+L10N.zh={
+  code:'zh',docTitle:'首席狗 · 占地标记小游戏',
+  h1:'首席<span>狗</span>',
+  ui:{
+    tagline:'地图、名字、品种、难度 —— 为领地而战！',
+    bladder:'膀胱',barkHud:'吠叫 (E)',ready:'就绪！',ready2:'就绪！',
+    terr:'领地',time:'时间',points:'分数',marksMap:'标记地图',
+    hint:'<kbd>W A S D</kbd> — 跑动 · 长按 <kbd>空格</kbd> — 标记 · <kbd>E</kbd> — 吠叫 · <kbd>P</kbd> — 暂停',
+    btnPee:'标记',btnBark:'吠叫',
+    setName:'名字',setBreed:'品种（体型很重要）',setMap:'地图',setDiff:'难度',
+    m_yards:'院子',m_yardsS:'房屋、公园、路口',
+    m_lot:'市场',m_lotS:'柏油路、汽车、帐篷',
+    m_field:'荒地',m_fieldS:'棚屋、草垛、油桶',
+    d_easy:'小狗',d_easyS:'120 秒 · 没有巴尔博斯',
+    d_normal:'大狗',d_normalS:'90 秒 · 巴尔博斯会来',
+    d_hard:'头犬',d_hardS:'75 秒 · 巴尔博斯 + 穆尔济克',
+    rule1:'雷克斯会覆盖你的标记。<b>巴尔博斯</b>是拴着的巨犬：追上你就给你好看。相遇就会爆发<b>斗殴</b>：大体型赢面更大，小体型最好快跑',
+    rule2:'<b>吠叫 (E)</b> 能赶走雷克斯和穆尔济克。只有<b>大体型</b>的狗能吓退巴尔博斯 —— 中小体型它会反扑！巴尔博斯和雷克斯自己也爱打架',
+    rule3:'消防栓、路灯、垃圾桶 —— 共 12 个酷地点。水碗和骨头能补膀胱。标记最多者获胜！',
+    play:'开跑！',settings:'设置',
+    keysHint:'<kbd>WASD</kbd> — 跑动 · <kbd>空格</kbd> — 标记 · <kbd>E</kbd> — 吠叫 · <kbd>Enter</kbd> — 开始',
+    keysHintTouch:'滑动屏幕 — 跑动 · <b>标记</b> — 留记号 · <b>吠叫</b> — 吓退 · <b>II</b> — 暂停',
+    pauseT:'暂停',pauseS:'狗狗等待指令…',resume:'继续',restart:'重新开始',toMenu:'回主菜单',
+    setT:'设置',setSub:'音量、语言和教学',volume:'音量',language:'语言',
+    showTut:'查看教学',back:'返回',tutSkip:'跳过',tutNext:'下一步',tutGo:'开战！',
+    again:'再来一局！',againHint:'<kbd>Enter</kbd> — 再玩一局',
+    sndTitle:'声音 (M)',pauseTitle:'暂停 (P)',
+    endTagTime:'时间到！',
+    stMap:'地图',stBreed:'品种',stTerr:'领地',stSpots:'酷地点',
+    stBase:'基础分',stTotal:'总计',stWins:'胜',stRex:'赶走雷克斯',
+    stBrawls:'与巴尔博斯斗殴',stCat:'赶走穆尔济克',stPigeons:'惊飞鸽子',
+    stPee:'标记时长',sec:'秒',tutStepOf:(i,n)=>'第 '+(i+1)+' / '+n+' 步',
+    music:'音乐',vibro:'振动',vibOn:'开',vibOff:'关',gfx:'画质',qAuto:'自动',qHigh:'高',qLow:'流畅',
+    ach:'奖杯',achT:'奖杯',achSub:'忠狗的12枚奖章',share:'分享',shareOk:'已复制到剪贴板！',
+  },
+  ach:{
+    walk1:['第一次散步','完成你的第一局'],
+    yard:['院子的主人','一局内标记7.5%领地'],
+    spots5:['收藏家','一局内占领5个酷地方'],
+    all12:['街区之星','占领全部12个酷地方'],
+    rex15:['雷克斯的噩梦','累计赶走雷克斯15次'],
+    barb:['击败大块头','在扭斗中战胜巴尔博斯'],
+    cat:['猫被赶跑','赶走穆尔济克'],
+    dove10:['鸽子大骚乱','累计赶散10只鸽子'],
+    rich:['第一千分','一局内得到1000分'],
+    boss:['街区头狗','一局内标记18%领地'],
+    runs10:['忠实的狗','完成10局'],
+    hard:['犬群首领','在“头狗”难度得到10%+领地'],
+  },
+  a_new:n=>'🏆 成就: '+n,
+  ast:(r,b)=>'局数: '+r+' · 最高分: '+b,
+  bonus:m=>'难度加成 ×'+m, rec:l=>'纪录（'+l+'）',
+  newRec:n=>'★ 新纪录：'+n,
+  maps:{yards:'院子',lot:'市场',field:'荒地'},
+  diffs:{easy:'小狗',normal:'大狗',hard:'头犬'},
+  sizes:{big:'大型',med:'中型',small:'小型'},
+  sizeDog:s=>s+'犬',
+  spots:{hydrant:'消防栓',lamp:'路灯',can:'垃圾桶'},
+  rival:'雷克斯',barb:'巴尔博斯',cat:'穆尔济克',defName:'旺财',
+  tStart:(n,b)=>n+'（'+b+'），跑起来，标记吧！',
+  tBarbSoon:'巴尔博斯来了 —— 又大又凶！',
+  tCatSoon:'穆尔济克在埋你的标记！',
+  t10:'还剩 10 秒！',
+  tEmpty:'膀胱空了！水碗或骨头能帮忙',
+  tWater:'喝水！膀胱满了',
+  tRexChased:v=>'赶走雷克斯！+'+v,
+  tCatChased:v=>'赶走穆尔济克！+'+v,
+  tSpotNew:(l,v)=>l+'归你了！+'+v,
+  tSpotRex:v=>'从雷克斯手里夺回！+'+v,
+  tRexStole:l=>'雷克斯抢走：'+l,
+  tAllSpots:v=>'12 个酷地点全是你的！+'+v,
+  tLoseFight:'巴尔博斯赢了斗殴！膀胱和标记都丢了',
+  tWinFight:(n,v)=>n+'打赢了巴尔博斯！+'+v,
+  tBarbVsRex:'巴尔博斯追着雷克斯满院子跑！',
+  tRexVsBarb:'雷克斯顶住了巴尔博斯！',
+  tBarbOut:'巴尔博斯出笼狩猎了！',
+  tBarkBig:v=>'巴尔博斯被这胆量吓懵了！+'+v,
+  tBarkSmall:'吓不倒巴尔博斯！快跑！',
+  tDiff:l=>'难度：'+l, tMap:m=>'地图：'+m,
+  ranks:[
+    [18,'街区首席狗','传奇。连巴尔博斯都绕着你走。'],
+    [12,'街区噩梦','雷克斯假装没认出你。'],
+    [7.5,'院子主人','邻居的狗都尊敬地摇尾巴。'],
+    [4,'庭院之犬','标完了自家院子 —— 已经不错！'],
+    [0,'胆小幼犬','你躲在栅栏后的时间比标记还多……'],
+  ],
+  tut:[
+    {t:'跑动',d:'触摸屏幕会出现虚拟摇杆。按住并拖向想去的方向，狗狗就会跟着跑。'},
+    {t:'标记',d:'长按黄色大按钮「标记」，狗狗会留下记号并占据领地。边跑边标也可以！'},
+    {t:'吠叫',d:'「吠叫」按钮能赶走雷克斯和猫穆尔济克。但只有<b>大型</b>犬能吓退巴尔博斯 —— 体型小就快跑！'},
+    {t:'酷地点',d:'站在消防栓、路灯或垃圾桶旁标记，就能占领它们拿到奖励。总共 12 个！'},
+    {t:'膀胱和时间',d:'留意膀胱条：水碗和骨头可以补满。在时间结束前尽量多占领地吧！'},
+  ],
+  skins:{
+    dvorn:{n:'田园犬',p:'威望 —— 赶走敌人奖励×2，敌人逃得更远'},
+    corgi:{n:'柯基',p:'大气场 —— 标记按中型犬计算，速度+15%'},
+    poodle:{n:'贵宾犬',p:'聪明 —— 跑动中标记频率×1.6'},
+    husky:{n:'哈士奇',p:'耐力好 —— 膀胱消耗慢 30%'},
+    lab:{n:'拉布拉多',p:'爱水 —— 水碗秒回满，速度+5%'},
+    dalm:{n:'斑点狗',p:'短跑健将 —— 速度+20%'},
+    shepherd:{n:'德牧',p:'工作犬 —— 占领酷地点速度×1.6'},
+    caucas:{n:'高加索牧羊犬',p:'护卫犬 —— 吓退敌人的距离+60%'},
+    alabai:{n:'中亚牧羊犬',p:'猎狼犬 —— 敌人瞄准你标记的频率减半'},
+  },
+};
+L10N.es={
+  code:'es',docTitle:'Perro Jefe — minijuego de marcas',
+  h1:'PERRO <span>JEFE</span>',
+  ui:{
+    tagline:'mapa, nombre, raza, dificultad — ¡y a pelear por el territorio!',
+    bladder:'VEJIGA',barkHud:'LADRIDO (E)',ready:'¡LISTO!',ready2:'¡LISTO!',
+    terr:'TERRITORIO',time:'TIEMPO',points:'PUNTOS',marksMap:'MAPA DE MARCAS',
+    hint:'<kbd>W A S D</kbd> — correr · mantén <kbd>Espacio</kbd> — marcar · <kbd>E</kbd> — ladrar · <kbd>P</kbd> — pausa',
+    btnPee:'MARCAR',btnBark:'LADRAR',
+    setName:'NOMBRE',setBreed:'RAZA (el tamaño importa)',setMap:'MAPA',setDiff:'DIFICULTAD',
+    m_yards:'PATIOS',m_yardsS:'casas, parque, cruce',
+    m_lot:'MERCADO',m_lotS:'asfalto, coches, toldos',
+    m_field:'BALDIOS',m_fieldS:'galpones, pajas, barriles',
+    d_easy:'CACHORRO',d_easyS:'120 seg · sin Barbos',
+    d_normal:'PERRO',d_normalS:'90 seg · viene Barbos',
+    d_hard:'ALFA',d_hardS:'75 seg · Barbos + Murzik',
+    rule1:'Rex tapa tus marcas. <b>Barbos</b> es un bruto con cadena: te alcanzará y te zarandeará. Si os encontráis habrá <b>pelea</b>: los grandes la tienen más fácil, los pequeños mejor correr',
+    rule2:'El <b>ladrido (E)</b> espanta a Rex y a Murzik. A Barbos solo lo asustan los perros <b>grandes</b> — ¡a los medianos y pequeños les da vueltas alrededor! Barbos y Rex también gustan pelear entre sí',
+    rule3:'Hidrantes, farolas, papeleras — 12 sitios geniales. Los bebederos y huesos rellenan la vejiga. ¡Gana quien más marque!',
+    play:'¡A CORRER!',settings:'AJUSTES',
+    keysHint:'<kbd>WASD</kbd> — correr · <kbd>Espacio</kbd> — marcar · <kbd>E</kbd> — ladrar · <kbd>Enter</kbd> — empezar',
+    keysHintTouch:'Desliza la pantalla — correr · <b>MARCAR</b> — charco · <b>LADRAR</b> — asustar · <b>II</b> — pausa',
+    pauseT:'PAUSA',pauseS:'el perro espera órdenes…',resume:'CONTINUAR',restart:'empezar de nuevo',toMenu:'menú principal',
+    setT:'AJUSTES',setSub:'sonido, idioma y tutorial',volume:'Volumen',language:'Idioma',
+    showTut:'ver tutorial',back:'atrás',tutSkip:'saltar',tutNext:'SIGUIENTE',tutGo:'¡A PELEAR!',
+    again:'¡OTRA VEZ!',againHint:'<kbd>Enter</kbd> — jugar otra vez',
+    sndTitle:'Sonido (M)',pauseTitle:'Pausa (P)',
+    endTagTime:'¡se acabó el tiempo!',
+    stMap:'Mapa',stBreed:'Raza',stTerr:'Territorio',stSpots:'Sitios geniales',
+    stBase:'Puntos base',stTotal:'TOTAL',stWins:'victorias',stRex:'Rex espantado',
+    stBrawls:'Peleas con Barbos',stCat:'Murzik espantado',stPigeons:'Palomas espantadas',
+    stPee:'Tiempo marcando',sec:'seg',tutStepOf:(i,n)=>'Paso '+(i+1)+' de '+n,
+    music:'Música',vibro:'Vibración',vibOn:'SÍ',vibOff:'NO',gfx:'Gráficos',qAuto:'AUTO',qHigh:'ALTO',qLow:'RÁPIDO',
+    ach:'TROFEOS',achT:'TROFEOS',achSub:'12 premios del perro fiel',share:'COMPARTIR',shareOk:'¡Copiado al portapapeles!',
+  },
+  ach:{
+    walk1:['Primer paseo','Juega tu primera ronda'],
+    yard:['Dueño del patio','Marca el 7.5% del territorio en una ronda'],
+    spots5:['Coleccionista','Captura 5 lugares geniales en una ronda'],
+    all12:['Estrella del barrio','Captura los 12 lugares geniales'],
+    rex15:['Pesadilla de Rex','Espanta a Rex 15 veces en total'],
+    barb:['Vence al gigante','Gana una pelea contra Barbos'],
+    cat:['Gato ahuyentado','Ahuyenta a Murzik'],
+    dove10:['Alboroto de palomas','Espanta 10 palomas en total'],
+    rich:['Primer millar','Consigue 1000 puntos en una ronda'],
+    boss:['PERRO PRINCIPAL','Marca el 18% del territorio en una ronda'],
+    runs10:['Perro fiel','Juega 10 rondas'],
+    hard:['Líder de la manada','10%+ de territorio en dificultad LÍDER'],
+  },
+  a_new:n=>'🏆 LOGRO: '+n,
+  ast:(r,b)=>'Rondas: '+r+' · Mejor puntuación: '+b,
+  bonus:m=>'Bonus de dificultad ×'+m, rec:l=>'Récord («'+l+'»)',
+  newRec:n=>'★ NUEVO RÉCORD: '+n,
+  maps:{yards:'PATIOS',lot:'MERCADO',field:'BALDIOS'},
+  diffs:{easy:'CACHORRO',normal:'PERRO',hard:'ALFA'},
+  sizes:{big:'GRANDE',med:'MEDIANO',small:'PEQUEÑO'},
+  sizeDog:s=>'PERRO '+s,
+  spots:{hydrant:'HIDRANTE',lamp:'FAROLA',can:'PAPELERA'},
+  rival:'Rex',barb:'Barbos',cat:'Murzik',defName:'Tobi',
+  tStart:(n,b)=>'¡'+n+' ('+b+'), CORRE Y MARCA!',
+  tBarbSoon:'¡VIENE BARBOS — GRANDE Y FURIOSO!',
+  tCatSoon:'¡MURZIK ESTÁ ENTERRANDO TUS MARCAS!',
+  t10:'¡QUEDAN 10 SEGUNDOS!',
+  tEmpty:'¡VEJIGA VACÍA! Un bebedero o un hueso ayudan',
+  tWater:'¡AGUA! VEJIGA LLENA',
+  tRexChased:v=>'¡REX ESPANTADO! +'+v,
+  tCatChased:v=>'¡MURZIK ESPANTADO! +'+v,
+  tSpotNew:(l,v)=>'¡'+l+' ES TUYO! +'+v,
+  tSpotRex:v=>'¡QUITADO A REX! +'+v,
+  tRexStole:l=>'REX TOMÓ: '+l,
+  tAllSpots:v=>'¡LOS 12 SITIOS SON TUYOS! +'+v,
+  tLoseFight:'¡BARBOS GANÓ LA PELEA! Vejiga y marcas perdidas',
+  tWinFight:(n,v)=>'¡'+n+' VENCIÓ A BARBOS! +'+v,
+  tBarbVsRex:'¡BARBOS PERSIGUE A REX POR TODO EL PATIO!',
+  tRexVsBarb:'¡REX SE DEFENDIÓ CONTRA BARBOS!',
+  tBarbOut:'¡BARBOS SALIÓ DE CAZA!',
+  tBarkBig:v=>'¡BARBOS ATÓNITO ANTE TANTA CARA DURA! +'+v,
+  tBarkSmall:'¡NO SE PUEDE ASUSTAR A BARBOS! ¡CORRE!',
+  tDiff:l=>'DIFICULTAD: '+l, tMap:m=>'MAPA: '+m,
+  ranks:[
+    [18,'PERRO JEFE DEL BARRIO','Una leyenda. Hasta Barbos te esquiva.'],
+    [12,'TERROR DEL BARRIO','Rex finge que no te reconoce.'],
+    [7.5,'AMO DEL PATIO','Los perros vecinos mueven la cola con respeto.'],
+    [4,'PERRO DE PATIO','Marcaste tu propio patio — ¡ya no está mal!'],
+    [0,'CACHORRO NERVIOSO','Te escondes tras la cerca más de lo que marcas…'],
+  ],
+  tut:[
+    {t:'CORRE',d:'Toca la pantalla y aparecerá el joystick. Arrastra el dedo hacia donde quieras ir y el perro te seguirá.'},
+    {t:'MARCA',d:'Mantén pulsado el gran botón amarillo MARCAR: el perro dejará una marca y reclamará territorio. ¡Incluso corriendo!'},
+    {t:'LADRA',d:'El botón LADRAR espanta a Rex y al gato Murzik. Pero a Barbos solo lo asustan los perros <b>GRANDES</b> — ¡si eres pequeño, corre!'},
+    {t:'SITIOS GENIALES',d:'Quédate junto a un hidrante, farola o papelera y marca: lo capturarás con bonus. ¡Hay 12 en total!'},
+    {t:'VEJIGA Y TIEMPO',d:'Vigila la vejiga: los bebederos y huesos la rellenan. ¡Marca todo el territorio que puedas antes de que acabe el tiempo!'},
+  ],
+  skins:{
+    dvorn:{n:'Callejero',p:'Autoridad — recompensa por perseguir ×2, los enemigos huyen 1.5× más lejos'},
+    corgi:{n:'Corgi',p:'Gran carácter — marcas como perro mediano, velocidad +15%'},
+    poodle:{n:'Caniche',p:'Inteligente — marca corriendo 1.6× más a menudo'},
+    husky:{n:'Husky',p:'Resistente — la vejiga se gasta un 30% más lento'},
+    lab:{n:'Labrador',p:'Acuático — bebederos sin recarga, velocidad +5%'},
+    dalm:{n:'Dálmata',p:'Corredor — corre un 20% más rápido'},
+    shepherd:{n:'Pastor Alemán',p:'Trabajador — captura sitios geniales 1.6× más rápido'},
+    caucas:{n:'Pastor Caucásico',p:'Guardián — asusta a enemigos y Barbos desde un 60% más lejos'},
+    alabai:{n:'Alabai',p:'Lobrero — los enemigos apuntan a tus marcas la mitad de veces'},
+  },
+};
+
+// ---------- язык ----------
+let lang=(save.lang&&L10N[save.lang])?save.lang:
+  (()=>{const n=(navigator.language||'ru').toLowerCase();
+    return n.startsWith('ru')?'ru':n.startsWith('zh')?'zh':n.startsWith('es')?'es':'en';})();
+const LN=()=>L10N[lang];
+
+function applyLang(){
+  const L=LN();
+  document.documentElement.lang=L.code;
+  document.title=L.docTitle;
+  $('titleH1').innerHTML=L.h1;
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    const v=L.ui[el.dataset.i];
+    if(v===undefined)return;
+    if(el.classList.contains('ih')||v.indexOf('<')>=0)el.innerHTML=v;else el.textContent=v;
+  });
+  document.querySelectorAll('[data-ti]').forEach(el=>{
+    const v=L.ui[el.dataset.ti];if(v!==undefined)el.title=v;
+  });
+  hintEl.innerHTML=L.ui.hint;
+  $('keysHint').innerHTML=L.ui.keysHint;
+  $('againHint').innerHTML=L.ui.againHint;
+  nameInput.placeholder=L.defName;
+  document.querySelectorAll('.langBtn[data-l]').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
+  updateSkinUI();
+  updateSpotHud();
+  applyVibBtn();
+  if(!screenEndEl.classList.contains('hidden'))showEnd();
+}
+
+// ---------- сложности ----------
+const DIFFS={
+  easy:  {time:120,rSpeed:68, rFlee:170,rFleeT:2.0, rMarkTick:.07, rClaimR:28,rHunt:.3, rSpotT:1.15,spotT:.7, drain:10,  regen:11,  cat:false,barbAt:null,mult:1},
+  normal:{time:90, rSpeed:100,rFlee:215,rFleeT:1.7, rMarkTick:.05, rClaimR:36,rHunt:.45,rSpotT:.9,  spotT:.6, drain:13,  regen:8.5, cat:false,barbAt:22, mult:1.25},
+  hard:  {time:75, rSpeed:132,rFlee:255,rFleeT:1.25,rMarkTick:.032,rClaimR:44,rHunt:.7, rSpotT:.55, spotT:.5, drain:16.5,regen:6.5, cat:true, barbAt:14, mult:1.6},
+};
+let diffKey=DIFFS[save.diff]?save.diff:'normal';
+const D=()=>DIFFS[diffKey];
+
+// ---------- размеры и породы ----------
+const SIZE={
+  big:  {sc:1.22,markR:1.28,spd:.92,drainM:.85},
+  med:  {sc:1,   markR:1,   spd:1,  drainM:1},
+  small:{sc:.84, markR:.8,  spd:1.12,drainM:1.15},
+};
+
+const SKINS=[
+  {key:'dvorn',size:'small',
+   ov:{chasePts:2,chaseFlee:1.5},
+   body:'#B0A189',paw:'#9C8C74',tailTip:'#D8CDB4',muzzle:'#CFC3A8',collar:'#C4453B',ears:'mixed',
+   patch:'#7A6A52',chest:'#CFC3A8'},
+  {key:'corgi',size:'small',
+   ov:{markR:1,spd:1.15},
+   body:'#E08A3C',paw:'#C97430',tailTip:'#E08A3C',muzzle:'#F6F1E6',collar:'#C4453B',
+   ears:'pointy',bigEars:true,tailLess:true,chest:'#F6F1E6',mask:'#F6F1E6'},
+  {key:'poodle',size:'small',
+   ov:{stampM:.6},
+   body:'#F4EDDF',paw:'#E6DCC6',tailTip:'#F4EDDF',muzzle:'#EAE0C9',collar:'#8E6FB8',
+   ears:'floppy',topknot:true,fluffy:true},
+  {key:'husky',size:'med',
+   ov:{drainM:.7},
+   body:'#C2CBD4',paw:'#AEB8C2',tailTip:'#F6F1E6',muzzle:'#F6F1E6',collar:'#2F8F83',ears:'pointy',
+   mask:'#EEF2F5',eyes:'#3E7CB8',brows:true},
+  {key:'lab',size:'med',
+   ov:{bowlInstant:true,spd:1.05},
+   body:'#E2B96F',paw:'#D0A75E',tailTip:'#D0A75E',muzzle:'#EFD9A8',collar:'#3E7CB8',ears:'floppy'},
+  {key:'dalm',size:'med',
+   ov:{spd:1.2},
+   body:'#F6F2E8',paw:'#F6F2E8',tailTip:'#F6F2E8',muzzle:'#F6F2E8',collar:'#D6483F',ears:'floppy',
+   spots:{col:'#33302B',n:6}},
+  {key:'shepherd',size:'big',
+   ov:{spotM:.62},
+   body:'#C08A4E',paw:'#B37F49',tailTip:'#3E362E',muzzle:'#2F2A24',collar:'#3E5F7E',ears:'pointy',
+   earCol:'#3E362E',saddle:'#4A3F33',cap:'#4A3F33',eyes:'#E8A33D'},
+  {key:'caucas',size:'big',
+   ov:{fearM:1.6},
+   body:'#C9C2B4',paw:'#B7AFA0',tailTip:'#E8E2D5',muzzle:'#DDD6C8',collar:'#5A4632',ears:'floppy',
+   ruff:'#D8D1C3',fluffy:true},
+  {key:'alabai',size:'big',
+   ov:{huntM:.5},
+   body:'#C9A56A',paw:'#B8925A',tailTip:'#B8925A',muzzle:'#6B5844',collar:'#7E4A28',
+   ears:'pointy',earCol:'#6B5844',mask:'#6B5844',chest:'#EFE7D2',eyes:'#F2C94C'},
+];
+for(const b of SKINS)b.base={...SIZE[b.size],...(b.ov||{})};
+
+let skinIdx=(OLD_SAVE&&Number.isInteger(save.skin)&&save.skin>=0&&save.skin<SKINS.length)?save.skin:0;
+const SK=()=>SKINS[skinIdx];
+let playerNameStr=(save.name||'').trim().slice(0,12)||LN().defName;
+nameInput.value=save.name||'';
+const PAL_RIVAL={body:'#8E939B',paw:'#7A7F88',tail:'#8E939B',tailTip:'#B9BEC6',muzzle:'#C6CBD3',collar:'#4E5661',ears:'floppy'};
+const PAL_BARB={body:'#7A5232',paw:'#6B4528',tailTip:'#5A3A20',muzzle:'#8A6238',collar:'#3A3530',
+                ears:'floppy',spiked:true,angry:true,eyes:'#F2C94C',scar:true};
+
+/* ================================================================
+   КАРТЫ. Каждая — свои здания, машины, деревья, объекты и тема земли.
+================================================================ */
+const MAPS=[
+  {id:'yards',theme:'grass',
+   houses:[
+     {x:110,y:100,w:280,h:190,c:'#C96F4A',r:'#A85A3C'},
+     {x:470,y:130,w:235,h:150,c:'#B65C3F',r:'#96492F'},
+     {x:130,y:780,w:245,h:175,c:'#A86450',r:'#8A5040'},
+     {x:520,y:845,w:215,h:150,c:'#C96F4A',r:'#A85A3C'},
+     {x:1150,y:765,w:270,h:190,c:'#B65C3F',r:'#96492F'},
+   ],
+   cars:[],tents:[],hay:[],tires:[],
+   trees:[[1055,165,46],[1255,315,40],[1465,135,50],[1595,340,36],[995,365,34],
+          [335,330,42],[85,205,34],[330,1005,44],[85,940,36],[625,1015,34],
+          [1060,725,40],[1420,1050,44],[1620,750,36],[600,415,30]],
+   bushes:[[240,300],[430,90],[965,235],[1530,428],[235,725],[690,770],[975,790],[1555,905],[1110,1050],[60,690]],
+   lamps:[[600,458],[1240,458],[200,662],[1500,662],[738,240],[922,880]],
+   hydrants:[[260,458],[1006,662],[1544,458]],
+   cans:[[940,452],[560,662],[922,330]],
+   benches:[[1180,410],[1360,265],[300,738]],
+   bowls:[{x:1055,y:935},{x:640,y:345}],
+  },
+  {id:'lot',theme:'asphalt',
+   houses:[
+     {x:150,y:100,w:250,h:160,c:'#8B6F52',r:'#6E5740',market:true},  // павильон
+   ],
+   tents:[
+     {x:1180,y:120,w:330,h:170,c:'#C96F4A'},
+     {x:600,y:120,w:330,h:150,c:'#7E9B6E'},
+   ],
+   cars:[
+     {x:170,y:250,w:70,h:120,c:'#B8443C'},
+     {x:290,y:250,w:70,h:120,c:'#4A7BA6'},
+     {x:410,y:250,w:70,h:120,c:'#D8C14A'},
+     {x:1230,y:250,w:70,h:120,c:'#5E9B6E'},
+     {x:1370,y:250,w:70,h:120,c:'#8A8F96'},
+     {x:170,y:800,w:70,h:120,c:'#6E5A8E'},
+     {x:290,y:800,w:70,h:120,c:'#C98A3C'},
+     {x:410,y:800,w:70,h:120,c:'#7E8CA0'},
+     {x:1250,y:800,w:70,h:120,c:'#B8443C'},
+     {x:1370,y:800,w:70,h:120,c:'#3E7CB8'},
+   ],
+   hay:[],tires:[[1080,560],[1140,600],[1080,640],[1560,980]],
+   trees:[[80,560,38],[1600,560,38],[700,1040,36],[980,1040,36],[80,80,30],[1600,1040,34]],
+   bushes:[[560,560],[1060,300],[560,820],[1060,900],[820,190],[820,980]],
+   lamps:[[760,430],[920,690],[100,300],[1580,300],[100,900],[1580,830]],
+   hydrants:[[60,720],[1620,470],[780,560]],
+   cans:[[980,430],[700,690],[1180,560]],
+   benches:[[600,690],[1080,400]],
+   bowls:[{x:880,y:560},{x:540,y:980}],
+  },
+  {id:'field',theme:'dirt',
+   houses:[
+     {x:150,y:130,w:210,h:150,c:'#A08A6A',r:'#7E6C50',shed:true},
+     {x:1240,y:150,w:230,h:160,c:'#96805E',r:'#756248',shed:true},
+     {x:640,y:870,w:190,h:140,c:'#A08A6A',r:'#7E6C50',shed:true},
+     {x:1180,y:850,w:250,h:170,c:'#8E7A5C',r:'#6E5C44',shed:true},
+   ],
+   cars:[],tents:[],tires:[[520,560],[560,610],[1420,400],[1470,450]],
+   hay:[[380,560,42],[880,240,46],[1120,620,40]],
+   trees:[[90,380,36],[160,980,40],[1560,1020,42],[980,90,32],[760,620,26],[300,300,30],[1340,620,34]],
+   bushes:[[480,300],[940,420],[200,620],[1100,300],[640,300],[1460,760],[820,1000],[480,1020],[100,760],[1560,700]],
+   lamps:[[620,452],[1040,662],[200,500]],
+   hydrants:[[1330,458],[350,662]],
+   cans:[[920,330],[700,900],[1480,940]],
+   benches:[[880,560]],
+   bowls:[{x:1060,y:940},{x:420,y:420}],
+  },
+];
+let mapKey=(OLD_SAVE&&MAPS.some(m=>m.id===save.map))?save.map:'yards';
+const MAP=()=>MAPS.find(m=>m.id===mapKey);
+
+// ---------- оффскрин-слои ----------
+const groundC=document.createElement('canvas');groundC.width=W;groundC.height=H;
+const topC=document.createElement('canvas');topC.width=W;topC.height=H;
+const terrC=document.createElement('canvas');terrC.width=W;terrC.height=H;
+const tctx=terrC.getContext('2d');
+// даунскейл-копии слоёв карты для слабых устройств (рисуются в 2 раза меньше -> в 4 раза быстрее)
+let gq=null,tq=null,kq=null;
+
+// ---------- геометрия карты (пересобирается при выборе) ----------
+let houses=[],rectColl=[],circColl=[],trees=[],bushes=[],lamps=[],hydrants=[],cans=[],
+    benches=[],bowls=[],boneSpawns=[],pigeonSpawns=[],spots=[];
+
+function buildMap(){
+  const m=MAP();
+  houses=m.houses.map(h=>({...h}));
+  trees=m.trees.map(t=>[...t]);
+  bushes=m.bushes.map(b=>[...b]);
+  lamps=m.lamps.map(l=>[...l]);
+  hydrants=m.hydrants.map(h=>[...h]);
+  cans=m.cans.map(c=>[...c]);
+  benches=m.benches.map(b=>[...b]);
+  bowls=m.bowls.map(b=>({x:b.x,y:b.y,cd:0}));
+  rectColl=houses.map(h=>({x:h.x+4,y:h.y+4,w:h.w-8,h:h.h-8}));
+  for(const b of benches)rectColl.push({x:b[0]-27,y:b[1]-9,w:54,h:18});
+  for(const c of m.cars)rectColl.push({x:c.x+3,y:c.y+3,w:c.w-6,h:c.h-6});
+  for(const t of m.tents)rectColl.push({x:t.x+4,y:t.y+4,w:t.w-8,h:t.h-8});
+  circColl=[];
+  for(const [x,y] of trees)circColl.push({x,y,r:10});
+  for(const [x,y] of bushes)circColl.push({x,y,r:12});
+  for(const [x,y] of lamps)circColl.push({x,y,r:5.5});
+  for(const [x,y] of hydrants)circColl.push({x,y,r:9.5});
+  for(const [x,y] of cans)circColl.push({x,y,r:11});
+  for(const [x,y,r] of m.hay)circColl.push({x,y,r:r*.75});
+  for(const [x,y] of m.tires)circColl.push({x,y,r:13});
+  spots=[];
+  hydrants.forEach(([x,y])=>spots.push({x,y,kind:'hydrant',owner:0,p1:0,p2:0,pulse:0}));
+  lamps.forEach(([x,y])=>spots.push({x,y,kind:'lamp',owner:0,p1:0,p2:0,pulse:0}));
+  cans.forEach(([x,y])=>spots.push({x,y,kind:'can',owner:0,p1:0,p2:0,pulse:0}));
+  // свободные точки для костей и голубей
+  boneSpawns=[];pigeonSpawns=[];
+  for(let tries=0;tries<600&&(boneSpawns.length<12||pigeonSpawns.length<9);tries++){
+    const x=rnd(90,W-90),y=rnd(90,H-90);
+    if(cellBlockedRaw(x,y))continue;
+    if(boneSpawns.length<12)boneSpawns.push([x,y]);
+    if(pigeonSpawns.length<9)pigeonSpawns.push([x,y]);
+  }
+  while(boneSpawns.length<12)boneSpawns.push([W/2,H/2]);
+  while(pigeonSpawns.length<9)pigeonSpawns.push([W/2,H/2]);
+}
+
+// ---------- сетка владения ----------
+const grid=new Uint8Array(GW*GH);
+let blockedGrid=null,freeCells=0;
+const counts=[0,0,0,0,0];
+function computeBlocked(){
+  for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){
+    const cx=gx*CELL+7,cy=gy*CELL+7;let b=false;
+    if(cx<34||cx>W-34||cy<34||cy>H-34)b=true;
+    if(!b)for(const rc of rectColl)if(cx>rc.x-12&&cx<rc.x+rc.w+12&&cy>rc.y-12&&cy<rc.y+rc.h+12){b=true;break;}
+    if(!b)for(const c of circColl)if((cx-c.x)**2+(cy-c.y)**2<(c.r+12)**2){b=true;break;}
+    grid[gy*GW+gx]=b?BLOCKED:EMPTY;
+  }
+  blockedGrid=grid.slice();
+  freeCells=0;for(let i=0;i<grid.length;i++)if(grid[i]!==BLOCKED)freeCells++;
+}
+function cellBlockedRaw(x,y){
+  const cx=x,cy=y;
+  if(cx<44||cx>W-44||cy<44||cy>H-44)return true;
+  for(const rc of rectColl)if(cx>rc.x-12&&cx<rc.x+rc.w+12&&cy>rc.y-12&&cy<rc.y+rc.h+12)return true;
+  for(const c of circColl)if((cx-c.x)**2+(cy-c.y)**2<(c.r+12)**2)return true;
+  return false;
+}
+function cellBlocked(x,y){
+  const gx=x/CELL|0,gy=y/CELL|0;
+  if(gx<0||gy<0||gx>=GW||gy>=GH)return true;
+  return grid[gy*GW+gx]===BLOCKED;
+}
+function claimCircle(x,y,r,owner){
+  const x0=Math.max(0,(x-r)/CELL|0),x1=Math.min(GW-1,(x+r)/CELL|0);
+  const y0=Math.max(0,(y-r)/CELL|0),y1=Math.min(GH-1,(y+r)/CELL|0);
+  for(let gy=y0;gy<=y1;gy++)for(let gx=x0;gx<=x1;gx++){
+    const cx=gx*CELL+7,cy=gy*CELL+7;
+    if((cx-x)**2+(cy-y)**2>r*r)continue;
+    const i=gy*GW+gx,cur=grid[i];
+    if(cur===BLOCKED||cur===owner)continue;
+    counts[cur]--;counts[owner]++;grid[i]=owner;
+  }
+}
+function clearCircle(x,y,r){ // стычка и Мурзик стирают метки игрока
+  let n=0;
+  const x0=Math.max(0,(x-r)/CELL|0),x1=Math.min(GW-1,(x+r)/CELL|0);
+  const y0=Math.max(0,(y-r)/CELL|0),y1=Math.min(GH-1,(y+r)/CELL|0);
+  for(let gy=y0;gy<=y1;gy++)for(let gx=x0;gx<=x1;gx++){
+    const cx=gx*CELL+7,cy=gy*CELL+7;
+    if((cx-x)**2+(cy-y)**2>r*r)continue;
+    const i=gy*GW+gx;
+    if(grid[i]===OWN){counts[OWN]--;counts[EMPTY]++;grid[i]=EMPTY;n++;}
+  }
+  return n;
+}
+function paintStamp(x,y,r,owner){
+  tctx.fillStyle=owner===OWN?'#EFC94C':owner===REX?'#93A5BD':'#B08A5A';
+  tctx.globalAlpha=.2;circ(tctx,x,y,r);
+  if(Math.random()<.55){
+    tctx.globalAlpha=.22;
+    circ(tctx,x+rnd(-r,r)*.7,y+rnd(-r,r)*.7,rnd(2,5));
+  }
+  tctx.globalAlpha=1;
+}
+function eraseStamp(x,y,r){
+  tctx.save();
+  tctx.globalCompositeOperation='destination-out';
+  tctx.globalAlpha=.9;circ(tctx,x,y,r);
+  tctx.restore();
+}
+const pct=()=>counts[OWN]/freeCells*100;
+
+// ---------- звук ----------
+let actx=null,master=null,noiseBuf=null,muted=!!save.muted,peeSnd=null;
+let vol=(typeof save.vol==='number')?clamp(save.vol|0,0,100):80;
+function masterVal(){return muted?0:(vol/100)*.55;}
+function applyVol(){if(master)master.gain.value=masterVal();}
+function initAudio(){
+  if(actx)return;
+  try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
+  master=actx.createGain();master.gain.value=masterVal();master.connect(actx.destination);
+  noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);
+  const d=noiseBuf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+}
+function tone(type,f0,f1,dur,volT,delay=0){
+  if(!actx)return;
+  const t=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f0,t);
+  if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(volT,t+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.06);
+}
+function noiseBurst(dur,volT,freq,delay=0){
+  if(!actx)return;
+  const t=actx.currentTime+delay,s=actx.createBufferSource();s.buffer=noiseBuf;
+  const f=actx.createBiquadFilter();f.type='lowpass';f.frequency.value=freq;
+  const g=actx.createGain();
+  g.gain.setValueAtTime(volT,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+dur+.05);
+}
+function startPeeSnd(){
+  if(!actx||peeSnd)return;
+  const src=actx.createBufferSource();src.buffer=noiseBuf;src.loop=true;
+  const f=actx.createBiquadFilter();f.type='bandpass';f.frequency.value=820;f.Q.value=.7;
+  const g=actx.createGain();g.gain.value=0;
+  src.connect(f);f.connect(g);g.connect(master);src.start();
+  g.gain.setTargetAtTime(.13,actx.currentTime,.05);
+  peeSnd={src,g};
+}
+function stopPeeSnd(){
+  if(!peeSnd)return;
+  const {src,g}=peeSnd;peeSnd=null;
+  g.gain.setTargetAtTime(0,actx.currentTime,.06);
+  setTimeout(()=>{try{src.stop()}catch(e){}},300);
+}
+const sndBark=()=>{tone('sawtooth',300,105,.11,.3,0);tone('sawtooth',300,105,.11,.3,.17);};
+const sndYelp=()=>tone('sine',650,1500,.18,.25);
+const sndMeow=()=>{tone('sine',740,480,.2,.18);tone('sine',980,560,.16,.1,.05);};
+const sndCoin=()=>{tone('square',900,900,.07,.12);tone('square',1350,1350,.09,.12,.07);};
+const sndPop=()=>{tone('triangle',480,900,.1,.25);tone('square',1200,1200,.06,.1,.08);};
+const sndJingle=()=>[523,659,784,1046].forEach((f,i)=>tone('triangle',f,f,.14,.2,i*.09));
+const sndDrink=()=>{for(let i=0;i<4;i++)tone('sine',rnd(280,520),rnd(500,700),.07,.14,i*.08);};
+const sndSteal=()=>tone('sawtooth',220,120,.25,.16);
+const sndEnd=()=>{tone('sine',1300,650,.5,.25);[784,659,523].forEach((f,i)=>tone('triangle',f,f,.18,.16,.55+i*.14));};
+const sndRoar=()=>{tone('sawtooth',120,55,.55,.34);noiseBurst(.5,.12,300,.05);};
+const sndGrowl=()=>{tone('sawtooth',95,60,.3,.28);tone('sawtooth',140,90,.22,.2,.1);};
+function sndFlap(){
+  if(!actx)return;
+  const t=actx.currentTime,s=actx.createBufferSource();s.buffer=noiseBuf;
+  const f=actx.createBiquadFilter();f.type='highpass';f.frequency.value=1400;
+  const g=actx.createGain();g.gain.setValueAtTime(.1,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);
+  s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+.25);
+}
+const sndHit=()=>{noiseBurst(.12,.3,500);tone('square',160,70,.1,.2);};
+function sndFight(){
+  sndGrowl();sndYelp();
+  for(let i=0;i<3;i++)setTimeout(sndHit,i*260);
+}
+function applyMuteIcons(){
+  $('icoOn').style.display=muted?'none':'block';
+  $('icoOff').style.display=muted?'block':'none';
+}
+function toggleSound(){
+  muted=!muted;
+  applyVol();
+  applyMuteIcons();
+  if(musicGain)musicGain.gain.setTargetAtTime(musicVal(),actx.currentTime,.05);
+  persist();
+}
+
+// ---------- вибрация (navigator.vibrate + Telegram HapticFeedback) ----------
+let vibr=(typeof save.vib==='boolean')?save.vib:true;
+function vib(p,style){
+  if(!vibr)return;
+  if(state==='attract')return; // демо-пёс на титуле не трясёт телефон
+  try{if(navigator.vibrate)navigator.vibrate(p)}catch(e){}
+  try{const h=window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.HapticFeedback;
+    if(h)h.impactOccurred(style||'medium')}catch(e){}
+}
+
+// ---------- процедурная музыка (C-пентатоника) ----------
+let musicVol=(typeof save.mvol==='number')?clamp(save.mvol|0,0,100):40;
+let musicGain=null,musStep=0,musNextT=0,musInt=null;
+function musicVal(){return muted?0:(musicVol/100)*.30;}
+function initMusic(){
+  if(!actx||musicGain)return;
+  musicGain=actx.createGain();musicGain.gain.value=musicVal();musicGain.connect(actx.destination);
+}
+const PENT=[261.63,293.66,329.63,392,440,523.25,587.33,659.25];
+const MEL=[0,2,4,7,-1,7,4,5, 7,-1,5,4,2,0,-1,2, 4,5,7,4,-1,2,0,2, 0,-1,2,4,5,7,-1,-1];
+const BASSN=[65.41,49,55,43.65];
+function musNote(type,f,dur,v,t){
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(v,t+.03);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(musicGain);o.start(t);o.stop(t+dur+.05);
+}
+function musHat(t,v){
+  const s=actx.createBufferSource();s.buffer=noiseBuf;
+  const f=actx.createBiquadFilter();f.type='highpass';f.frequency.value=6000;
+  const g=actx.createGain();
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.06);
+  s.connect(f);f.connect(g);g.connect(musicGain);s.start(t);s.stop(t+.08);
+}
+function scheduleMus(step,t){
+  const m=MEL[step%32];
+  if(m>=0)musNote('triangle',PENT[m],.34,.14,t);
+  if(step%8===0)musNote('sine',BASSN[(step>>3)&3],1.15,.22,t);
+  else if(step%8===4)musNote('sine',BASSN[((step>>3)+2)&3],.9,.16,t);
+  if(state==='play')musHat(t,step%2?.05:.09);
+}
+function musTick(){
+  if(!actx||!musicGain)return;
+  while(musNextT<actx.currentTime+.4){
+    scheduleMus(musStep,musNextT);
+    musNextT+=.3125; // 96 BPM, восьмые ноты
+    musStep++;
+  }
+}
+function startMusic(){
+  if(!actx||musInt)return;
+  initMusic();
+  musNextT=actx.currentTime+.1;
+  musInt=setInterval(musTick,180);
+}
+
+// ---------- состояние ----------
+let state='attract',time=0,pts=0,dispPts=0,timeLeft=90,warned10=false,shake=0,hintHidden=false;
+let showEndT=null,barbWarnT=null,hintT=null;
+const stats={chased:0,pigeons:0,pee:0,allSpots:false,catChased:0,brawls:0,brawlsWon:0};
+const cam={x:W/2,y:H/2};
+let vw=innerWidth,vh=innerHeight,dpr=1;
+
+const player={x:150,y:562,vx:0,vy:0,a:0,phase:0,id:0,sc:1,peeing:false,bladder:70,stationary:0,
+              peeTick:0,stampT:0,dustT:0,excited:false,moving:false,aiT:0,aiPee:0,tx:150,ty:562,
+              inBrawl:false,barkCd:0};
+const BARK_CD=5;
+const rival={x:1520,y:940,vx:0,vy:0,a:Math.PI,phase:0,id:1,sc:1,peeing:false,moving:false,excited:false,
+             state:'walk',tx:900,ty:300,t:0,fleeCd:0,markTick:0,stampT:0,stuck:0,inBrawl:false};
+const cat={x:830,y:120,tx:830,ty:120,vx:0,vy:0,a:0,phase:0,id:7,state:'walk',t:0,fleeCd:0,
+           erT:0,stuck:0,active:false,moving:false,excited:false,peeing:false};
+const barb={x:-60,y:560,vx:0,vy:0,a:0,phase:0,id:3,sc:1.5,peeing:false,moving:false,excited:false,
+            state:'gone',tx:840,ty:560,t:0,spawnT:0,attackCd:0,markTick:0,stampT:0,stuck:0,
+            brawl:null,active:false};
+
+const drops=[],parts=[],floaters=[],clouds=[],rings=[];
+let bones=[],pigeons=[];
+
+const key={},input={space:false,btn:false,bark:false};
+const joy={on:false,id:null,ax:0,ay:0,vx:0,vy:0};
+
+// ---------- геймпад ----------
+const PAD={ax:0,ay:0,pee:false,barkPrev:false,startPrev:false};
+function pollPad(){
+  let gp=null;
+  try{
+    const pads=navigator.getGamepads?navigator.getGamepads():[];
+    for(const p of pads){if(p&&p.connected){gp=p;break;}}
+  }catch(e){}
+  if(!gp){PAD.ax=PAD.ay=0;PAD.pee=false;return;}
+  const dz=v=>Math.abs(v)>.22?v:0;
+  PAD.ax=dz(gp.axes[0]||0);PAD.ay=dz(gp.axes[1]||0);
+  PAD.pee=!!((gp.buttons[0]&&gp.buttons[0].pressed)||(gp.buttons[2]&&gp.buttons[2].pressed));
+  const bark=!!((gp.buttons[1]&&gp.buttons[1].pressed)||(gp.buttons[5]&&gp.buttons[5].pressed));
+  if(bark&&!PAD.barkPrev)input.bark=true;
+  PAD.barkPrev=bark;
+  const st=!!(gp.buttons[9]&&gp.buttons[9].pressed);
+  if(st&&!PAD.startPrev){
+    if(state==='play')pauseGame();
+    else if(state==='pause')resumeGame();
+  }
+  PAD.startPrev=st;
+}
+
+// ---------- очки ----------
+function award(n){const v=Math.round(n*(SK().base.scoreM||1));pts+=v;return v;}
+
+// ---------- тосты ----------
+const lastToast={};
+function toast(text,type){
+  const el=document.createElement('div');
+  el.className='toast '+(type||'');el.textContent=text;
+  toastsEl.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('on'));
+  setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),350)},2600);
+  while(toastsEl.children.length>3)toastsEl.firstChild.remove();
+}
+function toastOnce(keyName,cd,text,type){
+  const n=performance.now();
+  if(lastToast[keyName]&&n-lastToast[keyName]<cd*1000)return;
+  lastToast[keyName]=n;toast(text,type);
+}
+function floater(x,y,text,col){floaters.push({x,y,text,col,life:1});}
+function dust(x,y,n,spread=40){
+  n=LOWFI?Math.ceil(n*.7):n;
+  for(let i=0;i<n;i++)parts.push({x:x+rnd(-8,8),y:y+rnd(-8,8),vx:rnd(-spread,spread),vy:rnd(-spread,spread),
+    life:rnd(.3,.5),ml:.5,r:rnd(2.5,4.5),col:'#D9CFB6',type:'dust'});
+}
+
+// ---------- столкновения ----------
+function collide(e,r){
+  e.x=clamp(e.x,30+r,W-30-r);e.y=clamp(e.y,30+r,H-30-r);
+  for(const rc of rectColl){
+    const nx=clamp(e.x,rc.x,rc.x+rc.w),ny=clamp(e.y,rc.y,rc.y+rc.h);
+    const dx=e.x-nx,dy=e.y-ny,d2=dx*dx+dy*dy;
+    if(d2<r*r){
+      if(d2===0){
+        const l=e.x-rc.x,rr=rc.x+rc.w-e.x,t=e.y-rc.y,bb=rc.y+rc.h-e.y,m=Math.min(l,rr,t,bb);
+        if(m===l)e.x=rc.x-r;else if(m===rr)e.x=rc.x+rc.w+r;
+        else if(m===t)e.y=rc.y-r;else e.y=rc.y+rc.h+r;
+      }else{const d=Math.sqrt(d2);e.x=nx+dx/d*r;e.y=ny+dy/d*r;}
+    }
+  }
+  for(const c of circColl){
+    const dx=e.x-c.x,dy=e.y-c.y,rr=r+c.r,d2=dx*dx+dy*dy;
+    if(d2<rr*rr&&d2>0){const d=Math.sqrt(d2);e.x=c.x+dx/d*rr;e.y=c.y+dy/d*rr;}
+  }
+}
+
+/* ================================================================
+   ЗАПЕКАНИЕ КАРТ
+================================================================ */
+const THEME={
+  grass:{ground:'#A9C684',fence:'#9C7A4E',fence2:'#7C5E3A',grass1:'rgba(122,152,82,.16)',grass2:'rgba(214,228,160,.14)'},
+  asphalt:{ground:'#98938C',fence:'#B0AA9E',fence2:'#8A8478',grass1:'rgba(120,116,108,.14)',grass2:'rgba(190,186,178,.12)'},
+  dirt:{ground:'#C9B27E',fence:'#A08050',fence2:'#7E643C',grass1:'rgba(160,130,70,.18)',grass2:'rgba(226,204,150,.16)'},
+};
+function drawHouse(g,h){
+  g.fillStyle='rgba(45,38,28,.18)';g.fillRect(h.x+8,h.y+10,h.w,h.h);
+  g.fillStyle=h.c;g.fillRect(h.x,h.y,h.w,h.h);
+  g.strokeStyle='rgba(0,0,0,.10)';g.lineWidth=2;g.beginPath();
+  for(let yy=h.y+18;yy<h.y+h.h-8;yy+=20){g.moveTo(h.x+8,yy);g.lineTo(h.x+h.w-8,yy);}
+  g.stroke();
+  g.strokeStyle=h.r;g.lineWidth=4;g.strokeRect(h.x+2,h.y+2,h.w-4,h.h-4);
+  g.lineWidth=5;g.beginPath();g.moveTo(h.x+10,h.y+h.h/2);g.lineTo(h.x+h.w-10,h.y+h.h/2);g.stroke();
+  if(h.shed){ // ворота сарая
+    g.fillStyle=h.r;g.fillRect(h.x+h.w/2-22,h.y+h.h-38,44,34);
+    g.strokeStyle='rgba(0,0,0,.25)';g.lineWidth=2;
+    g.beginPath();g.moveTo(h.x+h.w/2,h.y+h.h-38);g.lineTo(h.x+h.w/2,h.y+h.h-4);g.stroke();
+  }else{
+    g.fillStyle=h.r;g.fillRect(h.x+h.w-40,h.y+14,24,24);
+    g.fillStyle='rgba(0,0,0,.18)';g.fillRect(h.x+h.w-36,h.y+18,16,16);
+  }
+}
+function drawTent(g,t){ // рыночный навес
+  g.fillStyle='rgba(45,38,28,.18)';g.fillRect(t.x+8,t.y+10,t.w,t.h);
+  g.fillStyle='#EFE7D2';g.fillRect(t.x,t.y,t.w,t.h);
+  const sw=t.w/6;
+  for(let i=0;i<6;i++){g.fillStyle=i%2?t.c:'#F6F1E6';g.fillRect(t.x+i*sw,t.y,sw,26);}
+  g.strokeStyle='rgba(0,0,0,.25)';g.lineWidth=3;g.strokeRect(t.x,t.y,t.w,26);
+  g.strokeStyle=t.c;g.lineWidth=4;g.strokeRect(t.x+2,t.y+2,t.w-4,t.h-4);
+  g.fillStyle='rgba(0,0,0,.08)';g.fillRect(t.x+10,t.y+36,t.w-20,10);
+  g.fillStyle='#B98A54';g.fillRect(t.x+16,t.y+50,44,26);
+  g.fillRect(t.x+t.w-60,t.y+50,44,26);
+}
+function drawCar(g,c){
+  g.fillStyle='rgba(45,38,28,.22)';g.fillRect(c.x+5,c.y+7,c.w,c.h);
+  const vert=c.h>c.w;
+  g.fillStyle=c.c;
+  if(vert){
+    g.fillRect(c.x,c.y,c.w,c.h);
+    g.fillStyle='rgba(255,255,255,.35)';
+    g.fillRect(c.x+7,c.y+16,c.w-14,22);g.fillRect(c.x+7,c.y+c.h-52,c.w-14,22);
+    g.fillStyle='#33302B';
+    g.fillRect(c.x-3,c.y+18,6,24);g.fillRect(c.x+c.w-3,c.y+18,6,24);
+    g.fillRect(c.x-3,c.y+c.h-42,6,24);g.fillRect(c.x+c.w-3,c.y+c.h-42,6,24);
+    g.fillStyle='rgba(255,244,200,.8)';g.fillRect(c.x+8,c.y+c.h-6,c.w-16,4);
+  }else{
+    g.fillRect(c.x,c.y,c.w,c.h);
+    g.fillStyle='rgba(255,255,255,.35)';
+    g.fillRect(c.x+16,c.y+7,22,c.h-14);g.fillRect(c.x+c.w-52,c.y+7,22,c.h-14);
+    g.fillStyle='#33302B';
+    g.fillRect(c.x+18,c.y-3,24,6);g.fillRect(c.x+18,c.y+c.h-3,24,6);
+    g.fillRect(c.x+c.w-42,c.y-3,24,6);g.fillRect(c.x+c.w-42,c.y+c.h-3,24,6);
+    g.fillStyle='rgba(255,244,200,.8)';g.fillRect(c.x+c.w-6,c.y+8,4,c.h-16);
+  }
+  g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=2.5;
+  g.strokeRect(c.x,c.y,c.w,c.h);
+}
+function drawHay(g,x,y,r){
+  g.fillStyle='rgba(45,38,28,.16)';ell(g,x+5,y+7,r,r*.8);
+  g.fillStyle='#D9B95C';circ(g,x,y,r);
+  g.strokeStyle='#B4913C';g.lineWidth=2.5;
+  g.beginPath();g.arc(x,y,r,0,TAU);g.stroke();
+  g.beginPath();g.arc(x,y,r*.6,0,TAU);g.stroke();
+  g.beginPath();g.moveTo(x-r*.7,y-r*.3);g.lineTo(x+r*.7,y+r*.3);
+  g.moveTo(x-r*.3,y-r*.7);g.lineTo(x+r*.3,y+r*.7);g.stroke();
+}
+function drawTire(g,x,y){
+  g.fillStyle='rgba(45,38,28,.18)';ell(g,x+3,y+4,15,12);
+  g.fillStyle='#3A3631';circ(g,x,y,14);
+  g.fillStyle='#57534E';circ(g,x,y,7);
+  g.strokeStyle='#26231F';g.lineWidth=2;g.beginPath();g.arc(x,y,14,0,TAU);g.stroke();
+}
+function bakeMap(){
+  const m=MAP(),th=THEME[m.theme],g=groundC.getContext('2d');
+  g.setTransform(1,0,0,1,0,0);
+  g.fillStyle=th.ground;g.fillRect(0,0,W,H);
+  for(let i=0;i<170;i++){
+    g.fillStyle=Math.random()<.5?th.grass1:th.grass2;
+    ell(g,rnd(W),rnd(H),rnd(18,70),rnd(12,44));
+  }
+  if(m.id==='yards'){
+    g.fillStyle='rgba(60,90,40,.05)';
+    for(let x=0;x<W;x+=240)g.fillRect(x,0,120,H);
+    g.fillStyle='#DACFB9';
+    g.fillRect(0,436,W,44);g.fillRect(0,640,W,44);
+    g.fillRect(716,0,44,H);g.fillRect(900,0,44,H);
+    g.strokeStyle='rgba(160,146,118,.55)';g.lineWidth=2;g.beginPath();
+    for(let x=0;x<W;x+=46){g.moveTo(x,436);g.lineTo(x,480);g.moveTo(x,640);g.lineTo(x,684);}
+    for(let y=0;y<H;y+=46){g.moveTo(716,y);g.lineTo(760,y);g.moveTo(900,y);g.lineTo(944,y);}
+    g.stroke();
+    g.fillStyle='#6F6A64';
+    g.fillRect(760,0,140,H);g.fillRect(0,480,W,160);
+    g.fillStyle='rgba(52,48,44,.18)';
+    for(let i=0;i<26;i++){
+      if(Math.random()<.5)ell(g,rnd(768,892),rnd(0,H),rnd(10,34),rnd(6,18));
+      else ell(g,rnd(0,W),rnd(488,632),rnd(10,34),rnd(6,18));
+    }
+    g.strokeStyle='#C7BB9F';g.lineWidth=3;g.beginPath();
+    g.moveTo(0,480);g.lineTo(760,480);g.moveTo(900,480);g.lineTo(W,480);
+    g.moveTo(0,640);g.lineTo(760,640);g.moveTo(900,640);g.lineTo(W,640);
+    g.moveTo(760,0);g.lineTo(760,480);g.moveTo(760,640);g.lineTo(760,H);
+    g.moveTo(900,0);g.lineTo(900,480);g.moveTo(900,640);g.lineTo(900,H);
+    g.stroke();
+    g.strokeStyle='#E7C455';g.lineWidth=5;g.setLineDash([30,26]);g.beginPath();
+    g.moveTo(40,560);g.lineTo(650,560);g.moveTo(950,560);g.lineTo(W-40,560);
+    g.moveTo(830,40);g.lineTo(830,380);g.moveTo(830,460);g.lineTo(830,660);
+    g.stroke();g.setLineDash([]);
+    g.fillStyle='rgba(238,231,214,.85)';
+    for(let y=490;y<628;y+=22)g.fillRect(688,y,46,11);
+    for(let x=768;x<890;x+=22)g.fillRect(x,400,11,40);
+    g.fillStyle='#57534E';circ(g,1215,588,15);
+    g.strokeStyle='#48443F';g.lineWidth=3;g.beginPath();g.arc(1215,588,10,0,TAU);g.stroke();
+    g.fillStyle='#CDBF9F';
+    g.fillRect(238,290,26,146);g.fillRect(240,684,26,96);g.fillRect(1272,684,26,81);
+  }else if(m.id==='lot'){
+    // парковочная разметка
+    g.strokeStyle='rgba(245,240,228,.75)';g.lineWidth=4;
+    g.beginPath();
+    for(let x=150;x<=500;x+=120){g.moveTo(x,180);g.lineTo(x,400);g.moveTo(x,740);g.lineTo(x,960);}
+    g.moveTo(1200,180);g.lineTo(1200,400);g.moveTo(1320,180);g.lineTo(1320,400);g.moveTo(1440,180);g.lineTo(1440,400);
+    g.moveTo(1200,740);g.lineTo(1200,960);g.moveTo(1320,740);g.lineTo(1320,960);g.moveTo(1440,740);g.lineTo(1440,960);
+    g.stroke();
+    g.strokeStyle='rgba(245,240,228,.5)';g.lineWidth=5;g.setLineDash([26,22]);
+    g.beginPath();g.moveTo(60,560);g.lineTo(W-60,560);g.stroke();g.setLineDash([]);
+    // пешеходная зебра
+    g.fillStyle='rgba(245,240,228,.8)';
+    for(let x=760;x<920;x+=26)g.fillRect(x,520,14,80);
+    // масляные пятна
+    for(let i=0;i<16;i++){
+      g.fillStyle='rgba(40,38,36,.16)';
+      ell(g,rnd(100,1580),rnd(140,1000),rnd(8,26),rnd(5,14));
+    }
+    // трещины
+    g.strokeStyle='rgba(52,48,44,.3)';g.lineWidth=2;
+    for(let i=0;i<12;i++){
+      let x=rnd(W),y=rnd(H);g.beginPath();g.moveTo(x,y);
+      for(let k=0;k<4;k++){x+=rnd(-40,40);y+=rnd(-30,30);g.lineTo(x,y);}
+      g.stroke();
+    }
+    for(const t of m.tents)drawTent(g,t);
+    for(const c of m.cars)drawCar(g,c);
+  }else{ // dirt
+    // тропинки
+    g.fillStyle='rgba(210,186,132,.6)';
+    ell(g,840,560,320,60);ell(g,400,900,200,44);ell(g,1300,320,220,48);
+    // камешки и трещины
+    for(let i=0;i<80;i++){
+      g.fillStyle='rgba(120,100,60,.35)';circ(g,rnd(W),rnd(H),rnd(1.5,3.5));
+    }
+    g.strokeStyle='rgba(120,96,56,.4)';g.lineWidth=2;
+    for(let i=0;i<14;i++){
+      let x=rnd(W),y=rnd(H);g.beginPath();g.moveTo(x,y);
+      for(let k=0;k<4;k++){x+=rnd(-36,36);y+=rnd(-24,24);g.lineTo(x,y);}
+      g.stroke();
+    }
+    // лужи-декор
+    for(const [lx,ly] of [[700,760],[1240,540],[300,480]]){
+      g.fillStyle='rgba(122,152,160,.45)';ell(g,lx,ly,44,20);
+      g.fillStyle='rgba(200,220,224,.5)';ell(g,lx-10,ly-4,16,6);
+    }
+  }
+  for(const h of houses)drawHouse(g,h);
+  for(const [bx,by] of benches){
+    g.fillStyle='rgba(45,38,28,.18)';g.fillRect(bx-25,by-6,54,18);
+    g.fillStyle=m.theme==='dirt'?'#8A7048':'#B98A54';g.fillRect(bx-27,by-9,54,18);
+    g.strokeStyle=m.theme==='dirt'?'#5E4A2E':'#8A6538';g.lineWidth=2;g.beginPath();
+    for(let yy=by-5;yy<=by+7;yy+=6){g.moveTo(bx-25,yy);g.lineTo(bx+25,yy);}
+    g.stroke();
+    g.strokeStyle='#5E6166';g.strokeRect(bx-27,by-9,54,18);
+  }
+  for(const [x,y] of bushes){
+    g.fillStyle='rgba(45,38,28,.16)';ell(g,x+4,y+5,17,13);
+    g.fillStyle=m.theme==='dirt'?'#9AA050':'#7FA75D';circ(g,x,y,15);circ(g,x+7,y+3,10);
+    g.fillStyle=m.theme==='dirt'?'#A8AE60':'#8FB56B';circ(g,x-4,y-4,8);
+  }
+  for(const [x,y,r] of m.hay)drawHay(g,x,y,r);
+  for(const [x,y] of m.tires)drawTire(g,x,y);
+  for(const [x,y] of hydrants){
+    g.fillStyle='rgba(45,38,28,.2)';ell(g,x+4,y+5,10,7);
+    g.fillStyle='#A8352E';circ(g,x+1,y+1,9.5);
+    g.fillStyle='#D6483F';circ(g,x,y,9.5);
+    g.fillStyle='#E77A63';circ(g,x,y,4.6);
+    g.fillStyle='#A8352E';circ(g,x-8.6,y,2.6);circ(g,x+8.6,y,2.6);
+  }
+  for(const [x,y] of lamps){
+    g.fillStyle='rgba(45,38,28,.2)';ell(g,x+4,y+5,7,5);
+    g.fillStyle='#4A443F';circ(g,x,y,5.6);
+    g.strokeStyle='#332F2B';g.lineWidth=2;g.beginPath();g.arc(x,y,5.6,0,TAU);g.stroke();
+    g.fillStyle='#8A8378';circ(g,x,y,2.2);
+  }
+  for(const [x,y] of cans){
+    g.fillStyle='rgba(45,38,28,.2)';ell(g,x+4,y+5,12,8);
+    g.fillStyle=m.theme==='dirt'?'#8A6E4E':'#85888D';circ(g,x,y,11);
+    g.strokeStyle=m.theme==='dirt'?'#5E4A32':'#5E6166';g.lineWidth=2.5;g.beginPath();g.arc(x,y,11,0,TAU);g.stroke();
+    g.fillStyle=m.theme==='dirt'?'#75593C':'#6E7176';circ(g,x,y,7);
+    g.lineWidth=1.5;g.beginPath();g.moveTo(x-4,y-4);g.lineTo(x+4,y+4);g.stroke();
+  }
+  // растительность
+  const grassCol=m.theme==='dirt'?'#96823E':'#7DA055';
+  for(let i=0;i<260;i++){
+    const x=rnd(40,W-40),y=rnd(40,H-40);
+    if(cellBlockedRaw(x,y))continue;
+    if(Math.random()<.68){
+      g.strokeStyle=grassCol;g.lineWidth=1.6;g.beginPath();
+      g.moveTo(x-3,y+3);g.lineTo(x-4,y-4);g.moveTo(x,y+3);g.lineTo(x,y-5);g.moveTo(x+3,y+3);g.lineTo(x+4,y-4);g.stroke();
+    }else if(m.theme!=='asphalt'){
+      g.fillStyle=Math.random()<.5?'#F4F1E6':'#E9A0B0';
+      for(let k=0;k<4;k++){const a=k/4*TAU;circ(g,x+Math.cos(a)*2.6,y+Math.sin(a)*2.6,1.8);}
+      g.fillStyle='#F2C94C';circ(g,x,y,1.4);
+    }
+  }
+  g.fillStyle='rgba(255,246,214,.06)';
+  for(let i=0;i<26;i++)circ(g,rnd(W),rnd(H),rnd(20,60));
+  // забор
+  g.fillStyle=th.fence;
+  g.fillRect(0,0,W,20);g.fillRect(0,H-20,W,20);g.fillRect(0,0,20,H);g.fillRect(W-20,0,20,H);
+  g.strokeStyle=th.fence2;g.lineWidth=2;g.beginPath();
+  for(let x=0;x<W;x+=16){g.moveTo(x,1);g.lineTo(x,19);g.moveTo(x,H-19);g.lineTo(x,H-1);}
+  for(let y=0;y<H;y+=16){g.moveTo(1,y);g.lineTo(19,y);g.moveTo(W-19,y);g.lineTo(W-1,y);}
+  g.stroke();
+  g.strokeStyle=th.fence2;g.lineWidth=4;
+  g.strokeRect(2,2,W-4,H-4);g.strokeRect(18,18,W-36,H-36);
+  // тени крон
+  g.fillStyle='rgba(45,38,28,.16)';
+  for(const [x,y,r] of trees)ell(g,x+10,y+14,r*.95,r*.7);
+}
+function bakeTop(){
+  const g=topC.getContext('2d');
+  g.clearRect(0,0,W,H);
+  for(const [x,y,r] of trees){
+    g.fillStyle='#6E9A50';g.beginPath();
+    g.arc(x+rnd(-5,5),y+rnd(-5,5),r*.9,0,TAU);
+    g.arc(x+rnd(-7,7),y+rnd(-7,7),r*.72,0,TAU);
+    g.arc(x+rnd(-7,7),y+rnd(-7,7),r*.6,0,TAU);
+    g.fill();
+    g.fillStyle='#7DAA5C';circ(g,x-r*.18,y-r*.2,r*.55);
+    g.fillStyle='rgba(70,100,45,.5)';
+    for(let i=0;i<5;i++)circ(g,x+rnd(-r*.45,r*.45),y+rnd(-r*.45,r*.45),rnd(2.5,5));
+    g.strokeStyle='rgba(60,80,40,.28)';g.lineWidth=2.5;
+    g.beginPath();g.arc(x,y,r*.92,0,TAU);g.stroke();
+  }
+  if(qMode==='low')rebuildQ(); // half-слои должны отражать свежезапечённую карту
+}
+function mkCloud(){
+  const blobs=[];
+  for(let i=0;i<(LOW_END?4:7);i++)blobs.push({dx:rnd(-130,130),dy:rnd(-60,60),r:rnd(40,85)});
+  return {x:rnd(W),y:rnd(H),vx:rnd(9,16),blobs};
+}
+
+// ---------- даунскейл-копии слоёв карты (для режима низкой детализации) ----------
+function makeHalf(src){
+  const c=document.createElement('canvas');c.width=W>>1;c.height=H>>1;
+  const g=c.getContext('2d');g.imageSmoothingEnabled=true;
+  g.drawImage(src,0,0,c.width,c.height);return c;
+}
+function rebuildQ(){gq=makeHalf(groundC);tq=makeHalf(topC);kq=makeHalf(terrC);}
+function syncStamp(x,y,r,owner){ // зеркальная закраска метки в half-копию слоя территории
+  if(!kq)return;
+  const g=kq.getContext('2d'),h=.5;
+  g.fillStyle=owner===OWN?'#EFC94C':owner===REX?'#93A5BD':'#B08A5A';
+  g.globalAlpha=.2;circ(g,x*h,y*h,r*h);
+  if(Math.random()<.55){
+    g.globalAlpha=.22;
+    circ(g,x*h+rnd(-r,r)*.7*h,y*h+rnd(-r,r)*.7*h,rnd(2,5)*h);
+  }
+  g.globalAlpha=1;
+}
+function syncErase(x,y,r){ // зеркальное стирание из half-копии
+  if(!kq)return;
+  const g=kq.getContext('2d'),h=.5;
+  g.save();g.globalCompositeOperation='destination-out';
+  g.globalAlpha=.9;circ(g,x*h,y*h,r*h);
+  g.restore();
+}
+
+// ---------- сохранение настроек ----------
+function persist(){
+  try{
+    const json=JSON.stringify(
+      {v:4,name:nameInput.value.slice(0,12),skin:skinIdx,diff:diffKey,map:mapKey,
+       muted,vol,mvol:musicVol,vib:vibr,q:qSetting,lang,tut:save.tut?1:0});
+    localStorage.setItem('topdog-save',json);
+    try{if(TMA&&TMA.CloudStorage&&TMA.CloudStorage.setItem)TMA.CloudStorage.setItem('topdog-save',json)}catch(e){}
+  }catch(e){}
+}
+
+// ---------- голуби ----------
+let pid=0;
+function makePigeon(sp){return {x:sp[0],y:sp[1],a:rnd(TAU),state:'idle',t:rnd(1,3),fly:0,fvx:0,fvy:0,id:pid++};}
+function resetPigeons(){pigeons=pigeonSpawns.map(makePigeon);}
+function updatePigeons(dt){
+  for(const p of pigeons){
+    if(p.state==='gone'){p.t-=dt;if(p.t<=0)Object.assign(p,makePigeon(pigeonSpawns[(Math.random()*pigeonSpawns.length)|0]));continue;}
+    if(p.state==='idle'){
+      p.t-=dt;
+      if(p.t<=0){p.t=rnd(.8,2.4);p.a=rnd(TAU);}
+      p.x+=Math.cos(p.a)*16*dt;p.y+=Math.sin(p.a)*16*dt;
+      const nearP=dist(player.x,player.y,p.x,p.y)<64,
+            nearR=dist(rival.x,rival.y,p.x,p.y)<48,
+            nearC=cat.active&&dist(cat.x,cat.y,p.x,p.y)<48,
+            nearB=barb.active&&dist(barb.x,barb.y,p.x,p.y)<60;
+      if(nearP||nearR||nearC||nearB){
+        const src=nearP?player:nearR?rival:nearC?cat:barb;
+        const a=Math.atan2(p.y-src.y,p.x-src.x);
+        p.state='fly';p.fly=0;p.fvx=Math.cos(a)*135;p.fvy=Math.sin(a)*135;
+        if(nearP&&state==='play'){stats.pigeons++;const v=award(5);floater(p.x,p.y-16,'+'+v,'#8A7F70');sndFlap();}
+      }
+    }else{
+      p.fly+=dt;p.x+=p.fvx*dt;p.y+=p.fvy*dt;
+      if(p.fly>.9){p.state='gone';p.t=rnd(5,9);}
+    }
+  }
+}
+function drawPigeon(g,p){
+  if(p.state==='gone')return;
+  const fly=p.state==='fly';
+  const rise=fly?p.fly*70:0,al=fly?Math.max(0,1-p.fly/.9):1;
+  const bob=fly?0:Math.max(0,Math.sin(time*7+p.id))*1.5;
+  const yy=p.y-rise-bob;
+  g.save();g.globalAlpha=al;
+  g.fillStyle='rgba(45,38,28,.15)';ell(g,p.x+2,p.y+3,6,4);
+  if(fly){
+    const w=Math.sin(time*40)*5;
+    g.fillStyle='#8D939B';
+    ell(g,p.x-6,yy-4+w*.4,6,2.6);ell(g,p.x+6,yy-4+w*.4,6,2.6);
+  }
+  g.fillStyle='#9AA0A6';circ(g,p.x,yy,5.4);
+  g.fillStyle='#7C828A';circ(g,p.x+Math.cos(p.a)*3.4,yy+Math.sin(p.a)*3.4,3);
+  g.fillStyle='#E8A33D';circ(g,p.x+Math.cos(p.a)*6.4,yy+Math.sin(p.a)*6.4,1.3);
+  g.restore();
+}
+
+// ---------- косточки ----------
+function resetBones(){
+  bones=boneSpawns.slice(0,6).map(([x,y])=>({x,y,rot:rnd(TAU),on:true,rt:0}));
+}
+function updateBones(dt){
+  for(const b of bones){
+    b.rot+=dt*.6;
+    if(b.on)continue;
+    b.rt-=dt;
+    if(b.rt<=0){
+      let ok=false;
+      for(let t=0;t<12;t++){
+        const sp=boneSpawns[(Math.random()*boneSpawns.length)|0];
+        if(bones.some(o=>o.on&&o.x===sp[0]&&o.y===sp[1]))continue;
+        if(Math.hypot(sp[0]-player.x,sp[1]-player.y)<250)continue;
+        b.x=sp[0];b.y=sp[1];b.on=true;ok=true;break;
+      }
+      if(!ok)b.rt=3;
+    }
+  }
+}
+function drawBone(g,b){
+  if(!b.on)return;
+  const bob=Math.sin(time*3+b.x)*2;
+  g.fillStyle='rgba(45,38,28,.15)';ell(g,b.x+2,b.y+4,10,4);
+  g.save();g.translate(b.x,b.y+bob);g.rotate(b.rot);
+  g.fillStyle='#F6F1E2';
+  g.beginPath();
+  g.arc(-8,-3.2,3.6,0,TAU);g.arc(-8,3.2,3.6,0,TAU);
+  g.arc(8,-3.2,3.6,0,TAU);g.arc(8,3.2,3.6,0,TAU);
+  g.fill();
+  g.fillRect(-8,-3.4,16,6.8);
+  g.strokeStyle='rgba(140,125,95,.5)';g.lineWidth=1.5;g.strokeRect(-8,-3.4,16,6.8);
+  g.restore();
+}
+function drawBowl(g,w){
+  g.fillStyle='rgba(45,38,28,.15)';ell(g,w.x+2,w.y+3,13,8);
+  g.fillStyle='#B4713F';circ(g,w.x,w.y,12);
+  g.strokeStyle='#7E4A28';g.lineWidth=2;g.beginPath();g.arc(w.x,w.y,12,0,TAU);g.stroke();
+  if(w.cd<=0){
+    g.fillStyle='#7FB3CF';circ(g,w.x,w.y,8);
+    g.fillStyle='rgba(255,255,255,.55)';ell(g,w.x-3,w.y-3,3,2);
+  }else{g.fillStyle='#D8C6A8';circ(g,w.x,w.y,8);}
+}
+
+// ---------- крутые места ----------
+function spotLabel(s){return LN().spots[s.kind];}
+function updateSpotHud(){spotCnt.textContent=spots.filter(s=>s.owner===OWN).length+'/12';}
+function captureSpot(s,who){
+  const prev=s.owner,L=LN();
+  s.owner=who;s.p1=0;s.p2=0;s.pulse=1;
+  if(who===OWN){
+    const v=award(prev===REX?75:50);
+    stats.spots=(stats.spots||0)+1;
+    floater(s.x,s.y-30,'+'+v,'#8A5E0E');
+    sndPop();shake=Math.max(shake,5);vib(25);
+    toast(prev===REX?L.tSpotRex(v):L.tSpotNew(spotLabel(s),v),'gold');
+    if(spots.every(o=>o.owner===OWN)&&!stats.allSpots){
+      stats.allSpots=true;
+      const v2=award(200);sndJingle();vib(18);
+      toast(L.tAllSpots(v2),'gold');
+    }
+  }else{
+    toast(L.tRexStole(spotLabel(s)),'slate');sndSteal();vib(60,'heavy');shake=Math.max(shake,3);
+  }
+  updateSpotHud();
+}
+function drawSpotRings(g,x0,y0,x1,y1){
+  for(const s of spots){
+    if(s.x<x0||s.x>x1||s.y<y0||s.y>y1)continue;
+    const col=s.owner===OWN?'#E9A93B':s.owner===REX?'#7E8CA0':'rgba(46,42,38,.35)';
+    g.strokeStyle=col;g.lineWidth=2.5;g.setLineDash([7,6]);
+    g.beginPath();g.arc(s.x,s.y,22,0,TAU);g.stroke();g.setLineDash([]);
+    if(s.owner===0&&s.p1>0){
+      g.strokeStyle='#E9A93B';g.lineWidth=4.5;
+      g.beginPath();g.arc(s.x,s.y,22,-Math.PI/2,-Math.PI/2+TAU*Math.min(1,s.p1));g.stroke();
+    }
+    if(s.owner===0&&s.p2>0){
+      g.strokeStyle='#7E8CA0';g.lineWidth=4.5;
+      g.beginPath();g.arc(s.x,s.y,22,-Math.PI/2,-Math.PI/2+TAU*Math.min(1,s.p2));g.stroke();
+    }
+    if(s.pulse>0){
+      g.globalAlpha=s.pulse;
+      g.strokeStyle=s.owner===OWN?'#F2C94C':'#93A5BD';g.lineWidth=3;
+      g.beginPath();g.arc(s.x,s.y,22+(1-s.pulse)*26,0,TAU);g.stroke();
+      g.globalAlpha=1;
+    }
+  }
+}
+function drawSpotTops(g,x0,y0,x1,y1){
+  for(const s of spots){
+    if(s.x<x0||s.x>x1||s.y<y0||s.y>y1)continue;
+    if(s.owner===OWN){
+      const bob=Math.sin(time*3+s.x*.01)*2;
+      g.save();g.translate(s.x,s.y-26+bob);
+      g.fillStyle='#F2C34C';g.strokeStyle='#8A5E0E';g.lineWidth=1.6;
+      g.beginPath();
+      g.moveTo(-8,4);g.lineTo(-8,-4);g.lineTo(-3.4,-.5);g.lineTo(0,-6);g.lineTo(3.4,-.5);g.lineTo(8,-4);g.lineTo(8,4);
+      g.closePath();g.fill();g.stroke();
+      g.restore();
+    }else if(s.owner===REX){
+      g.save();g.translate(s.x,s.y-26);
+      g.fillStyle='#7E8CA0';g.strokeStyle='#4E5661';g.lineWidth=1.6;
+      g.beginPath();g.arc(0,0,7.5,0,TAU);g.fill();g.stroke();
+      g.fillStyle='#FBF4E2';g.font='800 10px Comfortaa';
+      g.textAlign='center';g.textBaseline='middle';g.fillText('R',0,.5);
+      g.restore();
+    }
+  }
+}
+
+// ---------- частицы / брызги / надписи ----------
+function makeDrop(tail,baseAng,owner){
+  const ang=baseAng+rnd(-1.1,1.1),sp=rnd(110,230),life=rnd(.26,.44);
+  return {x:tail.x,y:tail.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life,ml:life,r:rnd(2,3.2),
+          col:owner===OWN?'#F3D75E':owner===REX?'#C4CEDC':'#C9A97E',owner};
+}
+function updateDrops(dt){
+  const mr=SK().base.markR;
+  for(let i=drops.length-1;i>=0;i--){
+    const d=drops[i];
+    d.life-=dt;d.x+=d.vx*dt;d.y+=d.vy*dt;
+    const dm=Math.exp(-2.2*dt);d.vx*=dm;d.vy*=dm;
+    if(d.life<=0){
+      drops.splice(i,1);
+      const r=rnd(7,13)*(d.owner===OWN?mr:1);
+      claimCircle(d.x,d.y,r,d.owner);
+      paintStamp(d.x,d.y,r+2,d.owner);syncStamp(d.x,d.y,r+2,d.owner);
+    }
+  }
+}
+function updateParts(dt){
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];
+    p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
+    if(p.life<=0)parts.splice(i,1);
+  }
+  for(let i=rings.length-1;i>=0;i--){
+    const r=rings[i];
+    r.life-=dt;r.r+=260*dt;
+    if(r.life<=0)rings.splice(i,1);
+  }
+}
+function drawParts(g,dustPass){
+  for(const p of parts){
+    if((p.type==='dust')!==dustPass)continue;
+    const k=p.life/p.ml;
+    g.globalAlpha=k*(p.type==='dust'?.5:.85);
+    g.fillStyle=p.col;
+    const grow=p.type==='dust'?5:p.type==='bub'?6:p.type==='star'?-1:0;
+    circ(g,p.x,p.y,Math.max(.5,p.r+(1-k)*grow));
+  }
+  g.globalAlpha=1;
+  for(const r of rings){ // волны лая
+    g.globalAlpha=r.life*.5;
+    g.strokeStyle='#D97B4A';g.lineWidth=3.5;
+    g.beginPath();g.arc(r.x,r.y,r.r,0,TAU);g.stroke();
+  }
+  g.globalAlpha=1;
+}
+function drawDrops(g){
+  for(const d of drops){
+    g.globalAlpha=Math.min(1,d.life/d.ml*1.6);
+    g.fillStyle=d.col;circ(g,d.x,d.y,d.r);
+  }
+  g.globalAlpha=1;
+}
+function drawFloaters(g){
+  g.font='800 15px Comfortaa';g.textAlign='center';g.textBaseline='alphabetic';
+  for(const f of floaters){
+    const k=1-f.life,y=f.y-k*30;
+    g.globalAlpha=Math.min(1,f.life*1.6);
+    g.lineWidth=4;g.strokeStyle='rgba(251,244,226,.9)';g.strokeText(f.text,f.x,y);
+    g.fillStyle=f.col;g.fillText(f.text,f.x,y);
+  }
+  g.globalAlpha=1;
+}
+function drawLabel(g,d,text,col){
+  g.font='800 11px Comfortaa';g.textAlign='center';g.textBaseline='alphabetic';
+  const y=d.y-(24+10*(d.sc||1));
+  g.lineWidth=3.5;g.strokeStyle='rgba(251,244,226,.92)';g.strokeText(text,d.x,y);
+  g.fillStyle=col;g.fillText(text,d.x,y);
+}
+
+/* ================================================================
+   ПЁС — визуал породы, масштаб sc, шипы/шрам для Барбоса
+================================================================ */
+function drawDog(g,d,p){
+  const sc=d.sc||1;
+  g.save();g.translate(d.x,d.y);g.scale(sc,sc);
+  g.fillStyle='rgba(45,38,28,.2)';ell(g,2,6,15,11);
+  g.rotate(d.a);
+  const st=Math.sin(d.phase),st2=Math.sin(d.phase+Math.PI),amp=d.moving?3.2:0;
+  const leg=(x,y)=>{g.beginPath();g.arc(x,y,4,0,TAU);g.fill();};
+  g.fillStyle=p.paw;
+  leg(9+st*amp,-9.5);leg(9+st2*amp,9.5);leg(-7+st2*amp,-9.5);
+  if(d.peeing){g.fillStyle='rgba(45,38,28,.16)';ell(g,-1,9,4.5,3);g.fillStyle=p.paw;leg(-3,4);}
+  else leg(-7+st*amp,9.5);
+  const wag=Math.sin(time*(d.excited?15:7.5)+d.id)*(d.moving?2.4:3.4);
+  const tx=-18.5,ty=wag+(d.peeing?-.5:0);
+  if(p.tailLess){g.fillStyle=p.body;circ(g,-14.5,0,3.2);}
+  else{
+    const tr=p.fluffy?8.6:6.4;
+    g.fillStyle=p.body;circ(g,tx,ty,tr);
+    g.fillStyle=p.tailTip;circ(g,tx-1.8,ty-1.8,p.fluffy?4.6:2.9);
+  }
+  g.fillStyle=p.body;ell(g,0,0,14.5,10);
+  if(p.saddle){g.fillStyle=p.saddle;ell(g,-3,-1.5,9.8,7.2);}
+  if(p.ruff){g.fillStyle=p.ruff;circ(g,7.5,0,10.2);}
+  if(p.chest){g.fillStyle=p.chest;ell(g,7.5,0,4.6,6.2);}
+  if(p.spots){
+    g.fillStyle=p.spots.col;
+    const SP=[[-4,-3.5,3.4],[3.5,3,2.9],[-8.5,.5,2.5],[5.5,-4.5,2.3],[.5,-6.5,2.1],[-6,4.8,2.2]];
+    for(let i=0;i<Math.min(p.spots.n,SP.length);i++)circ(g,SP[i][0],SP[i][1],SP[i][2]);
+  }
+  g.fillStyle=p.body;circ(g,13.5,0,8.6);
+  if(p.cap){g.fillStyle=p.cap;ell(g,13.5,-4,7.4,3.8);}
+  if(p.mask){g.fillStyle=p.mask;ell(g,15.2,0,6.2,6.6);}
+  if(p.topknot){
+    g.fillStyle=p.body;circ(g,13.5,0,10);
+    g.fillStyle=p.paw;circ(g,11,-3.4,2.6);circ(g,15.6,2.2,2.4);circ(g,11.6,4.2,2.2);
+  }
+  if(p.patch){g.fillStyle=p.patch;circ(g,15,-4.6,3.3);}
+  if(p.scar){ // шрам через глаз
+    g.strokeStyle='#4A3A28';g.lineWidth=1.6;
+    g.beginPath();g.moveTo(12.6,-6.4);g.lineTo(17.4,-2.4);g.stroke();
+  }
+  const ec=p.earCol||p.paw;
+  if(p.ears==='pointy'){
+    const tip=p.bigEars?16:12.5;
+    g.fillStyle=ec;
+    g.beginPath();g.moveTo(9.5,-4);g.lineTo(13,-tip);g.lineTo(16.5,-4.5);g.closePath();g.fill();
+    g.beginPath();g.moveTo(9.5,4);g.lineTo(13,tip);g.lineTo(16.5,4.5);g.closePath();g.fill();
+  }else if(p.ears==='mixed'){
+    g.fillStyle=ec;
+    g.beginPath();g.moveTo(9.5,-4);g.lineTo(13,-12.5);g.lineTo(16.5,-4.5);g.closePath();g.fill();
+    circ(g,10.5,7.8,4.4);
+  }else{
+    g.fillStyle=ec;circ(g,10.5,-7.8,4.4);circ(g,10.5,7.8,4.4);
+  }
+  g.fillStyle=p.muzzle;ell(g,19,0,4.6,4);
+  g.fillStyle='#332C26';circ(g,21.4,0,1.9);
+  g.fillStyle=p.eyes||'#332C26';
+  g.beginPath();g.arc(15,-4.6,1.15,0,TAU);g.arc(15,4.6,1.15,0,TAU);g.fill();
+  if(p.brows){g.fillStyle=p.mask||'#F6F1E6';circ(g,15,-7.4,1.5);circ(g,15,7.4,1.5);}
+  if(p.angry){ // злые брови
+    g.strokeStyle='#2E2620';g.lineWidth=2;
+    g.beginPath();g.moveTo(13.4,-6.8);g.lineTo(16.8,-4.4);g.moveTo(13.4,6.8);g.lineTo(16.8,4.4);g.stroke();
+  }
+  g.strokeStyle=p.collar;g.lineWidth=3.2;
+  g.beginPath();g.arc(6.2,0,7.4,-1.25,1.25);g.stroke();
+  if(p.spiked){ // шипастый ошейник
+    g.fillStyle='#EDE6D2';
+    for(const t of [-0.85,0,0.85]){
+      const a=t;
+      circ(g,6.2+Math.cos(a)*7.4,Math.sin(a)*7.4,1.7);
+    }
+  }
+  g.restore();
+}
+
+/* ================================================================
+   КОТ МУРЗИК
+================================================================ */
+function resetCat(){
+  cat.active=D().cat;
+  cat.x=830;cat.y=120;cat.vx=cat.vy=0;cat.state='walk';cat.t=0;cat.fleeCd=0;cat.stuck=0;
+  for(let i=0;i<40;i++){
+    const x=rnd(100,W-100),y=rnd(100,H-100);
+    if(!cellBlocked(x,y)){cat.x=x;cat.y=y;break;}
+  }
+  pickCatTarget();
+}
+function pickCatTarget(){
+  if(Math.random()<(SK().base.huntM||1)){
+    for(let i=0;i<80;i++){
+      const gi=(Math.random()*GW*GH)|0;
+      if(grid[gi]!==OWN)continue;
+      cat.tx=(gi%GW)*CELL+7;cat.ty=((gi/GW)|0)*CELL+7;return;
+    }
+  }
+  for(let i=0;i<40;i++){
+    const x=rnd(80,W-80),y=rnd(80,H-80);
+    if(!cellBlocked(x,y)){cat.tx=x;cat.ty=y;return;}
+  }
+  cat.tx=W/2;cat.ty=H/2;
+}
+function updateCat(dt){
+  if(!cat.active)return;
+  const c=cat,fear=SK().base.fearM||1;
+  const dp=dist(player.x,player.y,c.x,c.y);
+  if(c.state!=='flee'&&dp<80*fear&&state!=='end'){
+    c.state='flee';c.t=1.3*(SK().base.chaseFlee||1);sndMeow();
+    dust(c.x,c.y,4);
+    if(c.fleeCd<=0&&state==='play'){
+      c.fleeCd=3.5;
+      const v=award(10*(SK().base.chasePts||1));stats.catChased++;
+      floater(c.x,c.y-24,'+'+v,'#B37A16');
+      toastOnce('catchase',3,LN().tCatChased(v),'gold');
+    }
+  }
+  if(c.state==='walk'){
+    const dx=c.tx-c.x,dy=c.ty-c.y,d=Math.hypot(dx,dy);
+    if(d<20){c.state='scratch';c.t=1.15;c.erT=0;}
+    else{c.vx=dx/d*118;c.vy=dy/d*118;}
+    c.stuck=Math.hypot(c.vx,c.vy)<12?c.stuck+dt:0;
+    if(c.stuck>1.5){pickCatTarget();c.stuck=0;}
+  }else if(c.state==='scratch'){
+    c.t-=dt;c.vx=0;c.vy=0;c.erT-=dt;
+    if(c.erT<=0){
+      c.erT=.13;
+      const ex=c.x+Math.cos(c.a)*15,ey=c.y+Math.sin(c.a)*15;
+      const n=clearCircle(ex,ey,26);
+      if(n>0){eraseStamp(ex,ey,26);syncErase(ex,ey,26);}
+      if(n===0&&c.t<1)c.t=0;
+    }
+    if(c.t<=0){pickCatTarget();c.state='walk';}
+  }else{
+    c.t-=dt;
+    const d=Math.max(1,dp);
+    c.vx=(c.x-player.x)/d*250;c.vy=(c.y-player.y)/d*250;
+    if(c.t<=0){c.state='walk';pickCatTarget();}
+  }
+  c.x+=c.vx*dt;c.y+=c.vy*dt;collide(c,11);
+  const sp=Math.hypot(c.vx,c.vy);
+  c.moving=sp>12;
+  if(c.moving)c.a=lerpAng(c.a,Math.atan2(c.vy,c.vx),Math.min(1,9*dt));
+  c.phase+=sp*dt*.09;
+}
+function drawCat(g,c){
+  g.save();g.translate(c.x,c.y);
+  g.fillStyle='rgba(45,38,28,.2)';ell(g,2,5,12,8);
+  g.rotate(c.a+(c.state==='scratch'?Math.sin(time*18)*.06:0));
+  const st=Math.sin(c.phase),st2=Math.sin(c.phase+Math.PI),amp=c.moving?2.6:0;
+  const leg=(x,y)=>{g.beginPath();g.arc(x,y,3.2,0,TAU);g.fill();};
+  g.fillStyle='#6E7783';
+  leg(7+st*amp,-6.5);leg(7+st2*amp,6.5);leg(-6+st2*amp,-6.5);leg(-6+st*amp,6.5);
+  const wag=Math.sin(time*6+c.phase*.3)*4;
+  g.strokeStyle='#7E8794';g.lineWidth=4.5;g.lineCap='round';
+  g.beginPath();g.moveTo(-11,0);g.quadraticCurveTo(-19,wag*.5,-23,wag-(c.moving?2:0));g.stroke();
+  g.fillStyle='#98A2B0';ell(g,0,0,12.5,8);
+  g.strokeStyle='rgba(90,99,113,.75)';g.lineWidth=2.2;
+  g.beginPath();
+  g.moveTo(-3,-7.4);g.lineTo(-3,-3.4);g.moveTo(1.5,-7.9);g.lineTo(1.5,-3.6);
+  g.moveTo(-3,7.4);g.lineTo(-3,3.4);g.moveTo(1.5,7.9);g.lineTo(1.5,3.6);
+  g.stroke();
+  g.fillStyle='#98A2B0';circ(g,10.5,0,7.2);
+  g.beginPath();g.moveTo(5.5,-4.5);g.lineTo(7.5,-11.5);g.lineTo(11.5,-4.8);g.closePath();g.fill();
+  g.beginPath();g.moveTo(5.5,4.5);g.lineTo(7.5,11.5);g.lineTo(11.5,4.8);g.closePath();g.fill();
+  g.strokeStyle='rgba(90,99,113,.75)';g.lineWidth=1.6;
+  g.beginPath();g.moveTo(9,-6.4);g.lineTo(9,-3.4);g.moveTo(12,-5.6);g.lineTo(12,-3.2);g.stroke();
+  if(c.state==='scratch'){
+    g.strokeStyle='#332C26';g.lineWidth=1.4;
+    g.beginPath();g.moveTo(12.4,-3);g.lineTo(14.6,-2.4);g.moveTo(12.4,3);g.lineTo(14.6,2.4);g.stroke();
+  }else{
+    g.fillStyle='#6FBF4E';circ(g,13.5,-3,1.4);circ(g,13.5,3,1.4);
+  }
+  g.fillStyle='#E8A0A0';
+  g.beginPath();g.moveTo(16.2,-1.3);g.lineTo(18.4,0);g.lineTo(16.2,1.3);g.closePath();g.fill();
+  g.strokeStyle='rgba(70,64,58,.6)';g.lineWidth=1;
+  g.beginPath();
+  g.moveTo(16.5,-1);g.lineTo(21,-2.6);g.moveTo(16.5,1);g.lineTo(21,2.6);
+  g.stroke();
+  if(c.state==='scratch'){
+    g.fillStyle='#6E7783';
+    circ(g,11,-7+Math.sin(time*20)*3,3.2);
+  }
+  g.restore();
+}
+
+/* ================================================================
+   СХВАТКИ (бравлы)
+================================================================ */
+function startBrawl(a,b,dur){
+  const bx=(a.x+b.x)/2,by=(a.y+b.y)/2;
+  a.inBrawl=true;b.inBrawl=true;
+  a.vx=a.vy=0;b.vx=b.vy=0;
+  a.brawl={other:b,x:bx,y:by,t:dur,fxT:0};
+  shake=Math.max(shake,6);
+  sndFight();vib([90,50,90],'heavy');
+}
+function resolveBrawl(src){ // src — инициатор (барбос)
+  const br=src.brawl,L=LN();
+  src.brawl=null;src.inBrawl=false;
+  br.other.inBrawl=false;
+  const vsPlayer=br.other===player;
+  let winnerIsBarb;
+  if(vsPlayer){
+    stats.brawls++;
+    const pWin=clamp(.2+(player.sc-.84)/(1.22-.84)*.55,.2,.75);
+    winnerIsBarb=Math.random()>pWin;
+  }else{
+    winnerIsBarb=Math.random()<.8;
+  }
+  const loser=winnerIsBarb?br.other:src;
+  const winner=winnerIsBarb?src:br.other;
+  const ang=Math.atan2(loser.y-winner.y,loser.x-winner.x);
+  loser.vx=Math.cos(ang)*340;loser.vy=Math.sin(ang)*340;
+  winner.vx=-Math.cos(ang)*120;winner.vy=-Math.sin(ang)*120;
+  for(let i=0;i<10;i++)parts.push({x:br.x+rnd(-14,14),y:br.y+rnd(-14,14),vx:rnd(-90,90),vy:rnd(-90,90),
+    life:.5,ml:.5,r:rnd(2,4),col:'#F2C94C',type:'star'});
+  dust(br.x,br.y,8,70);
+  if(vsPlayer){
+    if(winnerIsBarb){
+      player.bladder=Math.max(0,player.bladder-45);
+      clearCircle(player.x,player.y,78);
+      shake=Math.max(shake,10);
+      toast(L.tLoseFight,'red');
+      sndYelp();
+      barb.attackCd=7;
+    }else{
+      stats.brawlsWon++;
+      const v=award(30*(SK().base.chasePts||1));
+      toast(L.tWinFight(playerNameStr,v),'gold');
+      sndJingle();
+      barb.state='flee';barb.t=2.2;barb.goneT=20;barb.attackCd=6;
+    }
+  }else{
+    if(winnerIsBarb){
+      toast(L.tBarbVsRex,'slate');
+      rival.state='flee';rival.t=3;
+    }else{
+      toast(L.tRexVsBarb,'slate');
+      barb.state='flee';barb.t=1.6;barb.goneT=14;
+    }
+    sndYelp();
+  }
+}
+function updateBrawl(src,dt){
+  const br=src.brawl;
+  const o=br.other;
+  src.x=br.x+Math.sin(time*30)*5;
+  src.y=br.y+Math.cos(time*27)*5;
+  o.x=br.x-Math.sin(time*30)*5;
+  o.y=br.y-Math.cos(time*27)*5;
+  src.a+=dt*10;o.a-=dt*10;
+  src.phase+=dt*24;o.phase+=dt*24;
+  br.fxT-=dt;
+  if(br.fxT<=0){br.fxT=.12;dust(br.x,br.y,2,60);}
+  br.t-=dt;
+  if(br.t<=0)resolveBrawl(src);
+}
+
+/* ================================================================
+   БАРБОС
+================================================================ */
+function spawnBarb(){
+  barb.active=true;
+  const side=(Math.random()*4)|0;
+  if(side===0){barb.x=rnd(W);barb.y=-30;}
+  else if(side===1){barb.x=W+30;barb.y=rnd(H);}
+  else if(side===2){barb.x=rnd(W);barb.y=H+30;}
+  else{barb.x=-30;barb.y=rnd(H);}
+  barb.state='patrol';barb.t=0;barb.attackCd=2;barb.brawl=null;
+  pickBarbTarget();
+  sndRoar();shake=Math.max(shake,8);vib([120,70,120],'heavy');
+  toast(LN().tBarbOut,'red');
+}
+function pickBarbTarget(){
+  for(let i=0;i<50;i++){
+    const x=rnd(80,W-80),y=rnd(80,H-80);
+    if(!cellBlocked(x,y)){barb.tx=x;barb.ty=y;return;}
+  }
+  barb.tx=W/2;barb.ty=H/2;
+}
+function updateBarb(dt){
+  if(!barb.active)return;
+  if(state!=='play'&&state!=='attract')return; // в паузе/финале Барбос замирает и не начинает схватку
+  const b=barb;
+  if(b.state==='gone'){
+    b.goneT-=dt;
+    if(b.goneT<=0)spawnBarb();
+    return;
+  }
+  b.attackCd=Math.max(0,b.attackCd-dt);
+  if(b.brawl){updateBrawl(b,dt);return;}
+  const dp=dist(player.x,player.y,b.x,b.y);
+  const chaseRange=270;
+  // Барбос против Рекса: доминант не терпит наглых
+  const dr=dist(rival.x,rival.y,b.x,b.y);
+  if(rival.state!=='flee'&&!rival.inBrawl&&dr<150&&b.state!=='flee'){
+    if(dr<44){startBrawl(b,rival,1.7);return;}
+    b.tx=rival.x;b.ty=rival.y;
+  }else if(state==='play'&&b.attackCd<=0&&dp<chaseRange){
+    if(dp<40){startBrawl(b,player,1.8);return;}
+    b.state='chase';
+    b.tx=player.x;b.ty=player.y;
+  }else if(b.state==='chase'&&(dp>chaseRange*1.4||b.attackCd>0)){
+    b.state='patrol';pickBarbTarget();
+  }
+  if(b.state==='patrol'||b.state==='chase'){
+    const spd=b.state==='chase'?150+(diffKey==='hard'?22:0):62;
+    const dx=b.tx-b.x,dy=b.ty-b.y,d=Math.hypot(dx,dy);
+    if(b.state==='patrol'&&d<24){
+      if(Math.random()<.5){b.state='mark';b.t=1.5;}
+      else pickBarbTarget();
+    }else if(d>2){b.vx=dx/d*spd;b.vy=dy/d*spd;}
+    b.stuck=Math.hypot(b.vx,b.vy)<12?b.stuck+dt:0;
+    if(b.stuck>1.6){pickBarbTarget();b.stuck=0;}
+  }else if(b.state==='mark'){
+    b.t-=dt;b.vx=0;b.vy=0;
+    const tail={x:b.x-Math.cos(b.a)*28,y:b.y-Math.sin(b.a)*28};
+    b.stampT-=dt;
+    if(b.stampT<=0){b.stampT=.1;claimCircle(tail.x,tail.y,46,BARB);paintStamp(tail.x,tail.y,48,BARB);syncStamp(tail.x,tail.y,48,BARB);}
+    b.markTick-=dt;
+    if(b.markTick<=0){
+      b.markTick=.06;
+      for(let i=0;i<2&&drops.length<DROP_CAP;i++)drops.push(makeDrop(tail,b.a+Math.PI,BARB));
+    }
+    if(b.t<=0){pickBarbTarget();b.state='patrol';}
+  }else if(b.state==='flee'){
+    b.t-=dt;
+    const d=Math.max(1,dist(player.x,player.y,b.x,b.y));
+    b.vx=(b.x-player.x)/d*230;b.vy=(b.y-player.y)/d*230;
+    if(b.t<=0){b.state='gone';b.goneT=b.goneT||14;b.x=-100;b.y=-100;}
+  }
+  b.x+=b.vx*dt;b.y+=b.vy*dt;collide(b,20);
+  const sp=Math.hypot(b.vx,b.vy);
+  b.moving=sp>12;
+  if(b.moving)b.a=lerpAng(b.a,Math.atan2(b.vy,b.vx),Math.min(1,7*dt));
+  b.phase+=sp*dt*.06;
+}
+
+/* ================================================================
+   ЛАЙ
+================================================================ */
+function doBark(){
+  const p=player,L=LN();
+  if(p.barkCd>0||state!=='play'||p.inBrawl)return;
+  p.barkCd=BARK_CD;
+  const R=130*(SK().base.fearM||1);
+  rings.push({x:p.x,y:p.y,r:16,life:.6});
+  rings.push({x:p.x,y:p.y,r:2,life:.7});
+  sndBark();sndGrowl();vib(15);
+  const dp=dist(p.x,p.y,rival.x,rival.y);
+  if(dp<R&&rival.state!=='flee'){rival.state='flee';rival.t=1.6;}
+  if(cat.active&&cat.state!=='flee'&&dist(p.x,p.y,cat.x,cat.y)<R){cat.state='flee';cat.t=1.2;}
+  if(barb.active&&barb.state!=='gone'&&barb.state!=='flee'&&!barb.brawl){
+    const db=dist(p.x,p.y,barb.x,barb.y);
+    if(db<R){
+      if(player.sc>=1.15){ // крупные псы отгоняют
+        barb.state='flee';barb.t=1.6;barb.goneT=12;
+        const v=award(20*(SK().base.chasePts||1));
+        toast(L.tBarkBig(v),'gold');
+        sndYelp();
+      }else{
+        barb.attackCd=0; // бросается сразу
+        barb.state='chase';
+        toast(L.tBarkSmall,'red');
+        sndRoar();
+      }
+    }
+  }
+}
+
+/* ================================================================
+   ИГРОК
+================================================================ */
+function updatePlayer(dt,mode){
+  const p=player,B=SK().base,L=LN();
+  let ax=0,ay=0,pee=false;
+  if(mode==='player'){
+    ax=((key.ArrowRight||key.KeyD)?1:0)-((key.ArrowLeft||key.KeyA)?1:0);
+    ay=((key.ArrowDown||key.KeyS)?1:0)-((key.ArrowUp||key.KeyW)?1:0);
+    if(joy.on){ax=joy.vx;ay=joy.vy;}
+    else if(PAD.ax||PAD.ay){ax=PAD.ax;ay=PAD.ay;}
+    pee=input.space||input.btn||PAD.pee;
+    if(input.bark){input.bark=false;doBark();}
+  }else if(mode==='ai'){
+    p.aiT-=dt;
+    if(p.aiPee>0)p.aiPee-=dt;
+    if(p.aiT<=0){
+      if(p.bladder>55&&p.aiPee<=0){
+        p.aiPee=rnd(1,2);p.aiT=p.aiPee+1;
+        p.tx=p.x+rnd(-40,40);p.ty=p.y+rnd(-40,40);
+      }else{
+        p.aiT=rnd(2.5,5);
+        for(let t=0;t<20;t++){
+          const x=rnd(100,W-100),y=rnd(100,H-100);
+          if(!cellBlocked(x,y)){p.tx=x;p.ty=y;break;}
+        }
+      }
+    }
+    if(p.aiPee>0){ax=(p.tx-p.x)*.02;ay=(p.ty-p.y)*.02;}
+    else{
+      const dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy)||1;
+      if(d<24)p.aiT=Math.min(p.aiT,.4);
+      ax=dx/d;ay=dy/d;
+    }
+    pee=p.aiPee>0;
+  }
+  p.barkCd=Math.max(0,p.barkCd-dt);
+  if(p.inBrawl){ // в схватке пёс занят
+    stopPeeSnd();
+    return;
+  }
+  const l=Math.hypot(ax,ay);if(l>1){ax/=l;ay/=l;}
+  const cap=(p.peeing?78:205)*B.spd,k=1-Math.exp(-9*dt);
+  p.vx+=(ax*cap-p.vx)*k;p.vy+=(ay*cap-p.vy)*k;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;collide(p,13*p.sc);
+  const sp=Math.hypot(p.vx,p.vy);
+  p.moving=sp>20;
+  if(sp>25)p.a=lerpAng(p.a,Math.atan2(p.vy,p.vx),Math.min(1,11*dt));
+  p.phase+=sp*dt*.075;
+  p.stationary=sp<22?p.stationary+dt:0;
+  p.excited=spots.some(s=>s.owner!==OWN&&(p.x-s.x)**2+(p.y-s.y)**2<19600);
+
+  if(pee&&p.bladder<=0&&mode==='player')
+    toastOnce('empty',4,L.tEmpty,'slate');
+  p.peeing=pee&&p.bladder>0;
+
+  if(p.peeing){
+    p.bladder=Math.max(0,p.bladder-D().drain*B.drainM*dt);
+    if(mode==='player')stats.pee+=dt;
+    const tD=19*p.sc;
+    const tail={x:p.x-Math.cos(p.a)*tD,y:p.y-Math.sin(p.a)*tD};
+    p.stampT-=dt;
+    if(p.stampT<=0){
+      p.stampT=.09*(B.stampM||1);
+      const R=(18+Math.min(1,p.stationary/1.4)*28)*B.markR;
+      claimCircle(tail.x,tail.y,R,OWN);paintStamp(tail.x,tail.y,R,OWN);syncStamp(tail.x,tail.y,R,OWN);
+    }
+    p.peeTick-=dt;
+    if(p.peeTick<=0){
+      p.peeTick=.035;
+      const n=2+(Math.random()<.5?1:0);
+      for(let i=0;i<n&&drops.length<DROP_CAP;i++)drops.push(makeDrop(tail,p.a+Math.PI,OWN));
+      startPeeSnd();vib(12);
+    }
+    if(state==='play')for(const s of spots){
+      if(s.owner===OWN)continue;
+      if(dist(tail.x,tail.y,s.x,s.y)<58){
+        s.p1+=dt/(D().spotT*(B.spotM||1));
+        if(s.p1>=1)captureSpot(s,OWN);
+      }
+      else s.p1=Math.max(0,s.p1-dt);
+    }
+  }else{
+    stopPeeSnd();
+    for(const s of spots)if(s.owner!==OWN)s.p1=Math.max(0,s.p1-dt);
+  }
+  if(!p.peeing)p.bladder=Math.min(100,p.bladder+D().regen*dt);
+
+  if(mode==='player'&&state==='play'){
+    for(const b of bones){
+      if(!b.on)continue;
+      if(dist(p.x,p.y,b.x,b.y)<26){
+        b.on=false;b.rt=9;
+        const v=award(25);
+        p.bladder=Math.min(100,p.bladder+35);
+        floater(b.x,b.y-18,'+'+v,'#8A5E0E');sndCoin();
+      }
+    }
+    for(const w of bowls){
+      w.cd=Math.max(0,w.cd-dt);
+      if(w.cd<=0&&dist(p.x,p.y,w.x,w.y)<32&&p.bladder<99){
+        w.cd=B.bowlInstant?0:6;
+        p.bladder=100;sndDrink();
+        toastOnce('water',4,L.tWater,'gold');
+        for(let i=0;i<7;i++)parts.push({x:w.x+rnd(-8,8),y:w.y+rnd(-6,6),vx:rnd(-20,20),vy:rnd(-20,20),
+          life:.5,ml:.5,r:rnd(2,4),col:'rgba(255,255,255,.8)',type:'bub'});
+      }
+    }
+  }
+  p.dustT-=dt;
+  if(sp>150&&p.dustT<=0){
+    p.dustT=.09;
+    dust(p.x-Math.cos(p.a)*12,p.y-Math.sin(p.a)*12,1,20);
+  }
+}
+
+/* ================================================================
+   РЕКС
+================================================================ */
+function pickRivalTarget(far){
+  const hunt=Math.random()<D().rHunt*(SK().base.huntM||1);
+  for(let i=0;i<60;i++){
+    let x,y;
+    if(!far&&hunt){
+      const gi=(Math.random()*GW*GH)|0;
+      if(grid[gi]!==OWN)continue;
+      x=(gi%GW)*CELL+7;y=((gi/GW)|0)*CELL+7;
+    }else{
+      x=rnd(80,W-80);y=rnd(80,H-80);
+      if(cellBlocked(x,y))continue;
+      if(far&&Math.hypot(x-player.x,y-player.y)<420)continue;
+      if(barb.active&&barb.state!=='gone'&&Math.hypot(x-barb.x,y-barb.y)<300)continue; // держится от Барбоса подальше
+    }
+    rival.tx=x;rival.ty=y;return;
+  }
+  rival.tx=W/2;rival.ty=H/2;
+}
+function updateRival(dt){
+  const r=rival;
+  if(r.inBrawl)return;
+  r.fleeCd=Math.max(0,r.fleeCd-dt);
+  const fear=SK().base.fearM||1;
+  const dp=dist(player.x,player.y,r.x,r.y);
+  if(r.state!=='flee'&&dp<92*fear&&state!=='end'){
+    r.state='flee';r.t=D().rFleeT*(SK().base.chaseFlee||1);sndYelp();
+    dust(r.x,r.y,5);
+    if(r.fleeCd<=0&&state==='play'){
+      r.fleeCd=4;
+      const v=award(15*(SK().base.chasePts||1));stats.chased++;
+      floater(r.x,r.y-26,'+'+v,'#B37A16');
+      toastOnce('chase',3,LN().tRexChased(v),'gold');
+    }
+  }
+  if(r.state==='walk'){
+    const dx=r.tx-r.x,dy=r.ty-r.y,d=Math.hypot(dx,dy);
+    if(d<26){
+      if(Math.random()<.6){r.state='mark';r.t=1.35;}
+      else pickRivalTarget();
+    }else{r.vx=dx/d*D().rSpeed;r.vy=dy/d*D().rSpeed;}
+    r.stuck=Math.hypot(r.vx,r.vy)<15?r.stuck+dt:0;
+    if(r.stuck>1.5){pickRivalTarget();r.stuck=0;}
+  }else if(r.state==='mark'){
+    r.t-=dt;r.vx=0;r.vy=0;
+    const tail={x:r.x-Math.cos(r.a)*20,y:r.y-Math.sin(r.a)*20};
+    r.stampT-=dt;
+    if(r.stampT<=0){r.stampT=.09;claimCircle(tail.x,tail.y,D().rClaimR,REX);paintStamp(tail.x,tail.y,D().rClaimR+2,REX);syncStamp(tail.x,tail.y,D().rClaimR+2,REX);}
+    r.markTick-=dt;
+    if(r.markTick<=0){
+      r.markTick=D().rMarkTick;
+      for(let i=0;i<2&&drops.length<DROP_CAP;i++)drops.push(makeDrop(tail,r.a+Math.PI,REX));
+    }
+    if(state==='play')for(const s of spots){
+      if(s.owner===REX)continue;
+      if(dist(tail.x,tail.y,s.x,s.y)<58){s.p2+=dt/D().rSpotT;if(s.p2>=1)captureSpot(s,REX);}
+      else s.p2=Math.max(0,s.p2-dt);
+    }
+    if(r.t<=0){pickRivalTarget();r.state='walk';}
+  }else{
+    r.t-=dt;
+    const d=Math.max(1,dp);
+    r.vx=(r.x-player.x)/d*D().rFlee;r.vy=(r.y-player.y)/d*D().rFlee;
+    if(r.t<=0){r.state='walk';pickRivalTarget(true);}
+  }
+  r.x+=r.vx*dt;r.y+=r.vy*dt;collide(r,13);
+  const sp=Math.hypot(r.vx,r.vy);
+  r.moving=sp>15;
+  if(r.moving)r.a=lerpAng(r.a,Math.atan2(r.vy,r.vx),Math.min(1,8*dt));
+  r.phase+=sp*dt*.075;
+}
+
+// ---------- общий апдейт ----------
+function update(dt){
+  time+=dt;
+  for(const c of clouds){c.x+=c.vx*dt;if(c.x>W+320)c.x=-320;}
+  if(shake>0)shake=Math.max(0,shake-26*dt);
+  const mode=state==='play'?'player':state==='attract'?'ai':'off';
+  updatePlayer(dt,mode);
+  // таймер появления Барбоса
+  if(state==='play'&&D().barbAt){
+    if(!barb.everSpawned){
+      barb.spawnT-=dt;
+      if(barb.spawnT<=0){barb.everSpawned=true;spawnBarb();}
+    }
+  }
+  if(state!=='end'){updateRival(dt);updateCat(dt);updateBarb(dt);}
+  updatePigeons(dt);
+  if(state==='play')updateBones(dt);
+  updateDrops(dt);updateParts(dt);
+  for(let i=floaters.length-1;i>=0;i--){floaters[i].life-=dt*.9;if(floaters[i].life<=0)floaters.splice(i,1);}
+  for(const s of spots)s.pulse=Math.max(0,s.pulse-dt*1.5);
+  const tx=clamp(player.x+Math.cos(player.a)*36,vw/2,W-vw/2);
+  const ty=clamp(player.y+Math.sin(player.a)*36,vh/2,H-vh/2);
+  cam.x+=(tx-cam.x)*Math.min(1,dt*4.5);
+  cam.y+=(ty-cam.y)*Math.min(1,dt*4.5);
+  if(vw>=W)cam.x=W/2;if(vh>=H)cam.y=H/2;
+  if(state==='play'){
+    timeLeft-=dt;
+    if(timeLeft<=10&&!warned10){warned10=true;toast(LN().t10,'slate');}
+    if(timeLeft<=0){timeLeft=0;endGame();}
+  }
+}
+
+// ---------- рендер (с culling и режимом низкой детализации) ----------
+function render(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#28241F';ctx.fillRect(0,0,vw,vh);
+  const shx=(Math.random()-.5)*shake,shy=(Math.random()-.5)*shake;
+  ctx.save();
+  ctx.translate(Math.round(vw/2-cam.x+shx),Math.round(vh/2-cam.y+shy));
+  const lowQ=qMode==='low';
+  const sx=Math.max(0,(cam.x-vw/2)/2),sy=Math.max(0,(cam.y-vh/2)/2),
+        sw=Math.min(W/2-sx,vw+2),sh=Math.min(H/2-sy,vh+2);
+  if(lowQ&&gq&&kq){
+    // рисуем только видимую часть half-слоёв — в 4 раза меньше пикселей на кадр
+    ctx.drawImage(gq,sx,sy,sw,sh,sx*2,sy*2,sw*2,sh*2);
+    ctx.drawImage(kq,sx,sy,sw,sh,sx*2,sy*2,sw*2,sh*2);
+  }
+  else{ctx.drawImage(groundC,0,0);ctx.drawImage(terrC,0,0);}
+  ctx.fillStyle='rgba(38,32,22,.055)';
+  const vx0=cam.x-vw/2-90,vx1=cam.x+vw/2+90,vy0=cam.y-vh/2-90,vy1=cam.y+vh/2+90;
+  const vis=(x,y)=>x>vx0&&x<vx1&&y>vy0&&y<vy1;
+  for(const c of clouds)if(vis(c.x,c.y))for(const b of c.blobs)circ(ctx,c.x+b.dx,c.y+b.dy,b.r);
+  for(const w of bowls)if(vis(w.x,w.y))drawBowl(ctx,w);
+  for(const b of bones)if(vis(b.x,b.y))drawBone(ctx,b);
+  drawSpotRings(ctx,vx0,vy0,vx1,vy1);
+  for(const p of pigeons)if(vis(p.x,p.y))drawPigeon(ctx,p);
+  drawParts(ctx,true);
+  if(cat.active&&vis(cat.x,cat.y))drawCat(ctx,cat);
+  PAL_RIVAL.collar=diffKey==='hard'?'#C4453B':'#4E5661';
+  if(!rival.inBrawl&&vis(rival.x,rival.y))drawDog(ctx,rival,PAL_RIVAL);
+  if(barb.active&&barb.state!=='gone'&&!barb.inBrawl&&vis(barb.x,barb.y))drawDog(ctx,barb,PAL_BARB);
+  if(!player.inBrawl)drawDog(ctx,player,SK());
+  drawParts(ctx,false);
+  drawDrops(ctx);
+  drawSpotTops(ctx,vx0,vy0,vx1,vy1);
+  if(lowQ&&tq)ctx.drawImage(tq,sx,sy,sw,sh,sx*2,sy*2,sw*2,sh*2);else ctx.drawImage(topC,0,0);
+  const L=LN();
+  if(vis(player.x,player.y))drawLabel(ctx,player,playerNameStr,'#2E2A26');
+  if(vis(rival.x,rival.y))drawLabel(ctx,rival,L.rival,'#4E5661');
+  if(barb.active&&barb.state!=='gone'&&vis(barb.x,barb.y))drawLabel(ctx,barb,L.barb,'#5A3A20');
+  if(cat.active&&vis(cat.x,cat.y))drawLabel(ctx,cat,L.cat,'#575F6B');
+  drawFloaters(ctx);
+  ctx.restore();
+}
+
+// ---------- HUD (time-based throttle на мобильных + кэш текста) ----------
+let hudTimerStr='',hudPctStr='',hudT=0,mmT=0;
+function hudUpdate(dt){
+  // на слабых устройствах DOM-панель ~12 Гц, миникарта ~6 Гц — без reflow каждый кадр
+  const mob=qMode==='low',hudStep=.083,mmStep=.167;
+  hudT+=dt;mmT+=dt;
+  if(!mob||hudT>=hudStep){
+    hudT=0;
+    bladderFill.style.width=player.bladder+'%';
+    bladderBar.classList.toggle('full',player.bladder>99.5);
+    const bk=1-player.barkCd/BARK_CD;
+    barkFill.style.width=(bk*100)+'%';
+    barkBar.classList.toggle('full',player.barkCd<=0);
+    barkBtnEl.classList.toggle('cd',player.barkCd>0);
+    const pStr=Math.round(pct())+'%';
+    if(pStr!==hudPctStr){hudPctStr=pStr;terrPct.textContent=pStr;}
+    const s=Math.max(0,Math.ceil(timeLeft));
+    const tStr=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+    if(tStr!==hudTimerStr){hudTimerStr=tStr;timerEl.textContent=tStr;}
+    timerEl.classList.toggle('low',timeLeft<=10&&state==='play');
+    dispPts+=(pts-dispPts)*Math.min(1,dt*10);
+    if(Math.abs(pts-dispPts)<1)dispPts=pts;
+    ptsVal.textContent=Math.round(dispPts);
+  }
+  if(!mob||mmT>=mmStep){
+    mmT=0;
+    if(mob&&gq&&kq){ // под полупрозрачной сеткой виден только фон — half-слоя достаточно
+      mm.drawImage(gq,0,0,156,104);
+      mm.drawImage(kq,0,0,156,104);
+    }else{
+      mm.fillStyle='#9AB57A';mm.fillRect(0,0,156,104);
+      mm.drawImage(terrC,0,0,156,104);
+    }
+    for(const sp of spots){
+      mm.fillStyle=sp.owner===OWN?'#F2C34C':sp.owner===REX?'#7E8CA0':'rgba(46,42,38,.4)';
+      mm.fillRect(sp.x/W*156-1.5,sp.y/H*104-1.5,3,3);
+    }
+    if(cat.active){
+      mm.fillStyle='#D7DEE8';circ(mm,cat.x/W*156,cat.y/H*104,2.4);
+      mm.strokeStyle='#2E2A26';mm.lineWidth=1;mm.stroke();
+    }
+    if(barb.active&&barb.state!=='gone'){
+      mm.fillStyle='#7A5232';circ(mm,barb.x/W*156,barb.y/H*104,3.2);
+      mm.strokeStyle='#FBF4E2';mm.lineWidth=1;mm.stroke();
+    }
+    mm.fillStyle='#E8A33D';
+    mm.beginPath();mm.arc(player.x/W*156,player.y/H*104,3.4,0,TAU);mm.fill();
+    mm.strokeStyle='#FBF4E2';mm.lineWidth=1.5;mm.stroke();
+    mm.fillStyle='#4E5661';circ(mm,rival.x/W*156,rival.y/H*104,2.6);
+  }
+}
+
+// ---------- превью породы ----------
+const pv=$('skinPrev').getContext('2d');
+const pvDog={x:0,y:0,a:0,phase:0,id:9,sc:1,peeing:false,excited:false,moving:true};
+function drawSkinPreview(dt){
+  pvDog.phase+=dt*11;
+  pv.setTransform(2,0,0,2,0,0);
+  pv.clearRect(0,0,104,60);
+  pv.save();
+  pv.translate(44,30);
+  pv.scale(.95,.95);
+  drawDog(pv,pvDog,SK());
+  pv.restore();
+}
+function updateSkinUI(){
+  const s=SK(),L=LN();
+  $('skinName').textContent=L.skins[s.key].n;
+  const t=$('skinSize');
+  t.textContent=L.sizeDog(L.sizes[s.size]);
+  t.className='sizeTag '+s.size;
+  $('skinPerk').textContent=L.skins[s.key].p;
+  pvDog.sc=s.base.sc*.82;
+}
+function skinShift(d){
+  skinIdx=(skinIdx+d+SKINS.length)%SKINS.length;
+  updateSkinUI();persist();
+}
+
+/* ================================================================
+   СТАРТ / РЕСТАРТ / ФИНАЛ / МЕНЮ / ОБУЧЕНИЕ
+================================================================ */
+function loadBests(){try{return JSON.parse(localStorage.getItem('topdog-best')||'{}')}catch(e){return{}}}
+
+// ---------- достижения и глобальная статистика ----------
+let statsG=(()=>{try{return JSON.parse(localStorage.getItem('topdog-stats')||'{}')}catch(e){return{}}})();
+statsG.runs=statsG.runs||0;statsG.rex=statsG.rex||0;statsG.cat=statsG.cat||0;
+statsG.pigeons=statsG.pigeons||0;statsG.brawlsWon=statsG.brawlsWon||0;statsG.spotsAll=statsG.spotsAll||0;
+statsG.bestPct=statsG.bestPct||0;statsG.bestSpots=statsG.bestSpots||0;statsG.bestTotal=statsG.bestTotal||0;statsG.hardBest=statsG.hardBest||0;
+function saveStatsG(){try{localStorage.setItem('topdog-stats',JSON.stringify(statsG))}catch(e){}}
+let ach=(()=>{try{return JSON.parse(localStorage.getItem('topdog-ach')||'{}')}catch(e){return{}}})();
+function saveAch(){try{localStorage.setItem('topdog-ach',JSON.stringify(ach))}catch(e){}}
+let lastShare='';
+const ACH=[
+  {id:'walk1', ic:'🐾'},{id:'yard',  ic:'🏡'},{id:'spots5',ic:'🚩'},{id:'all12', ic:'🌟'},
+  {id:'rex15', ic:'🐕'},{id:'barb',  ic:'💪'},{id:'cat',   ic:'🐈'},{id:'dove10',ic:'🕊️'},
+  {id:'rich',  ic:'💰'},{id:'boss',  ic:'👑'},{id:'runs10',ic:'🔁'},{id:'hard',  ic:'⭐'},
+];
+function achCond(id){
+  const g=statsG;
+  switch(id){
+    case 'walk1':return g.runs>=1;
+    case 'yard':return g.bestPct>=7.5;
+    case 'spots5':return g.bestSpots>=5;
+    case 'all12':return g.spotsAll>=1;
+    case 'rex15':return g.rex>=15;
+    case 'barb':return g.brawlsWon>=1;
+    case 'cat':return g.cat>=1;
+    case 'dove10':return g.pigeons>=10;
+    case 'rich':return g.bestTotal>=1000;
+    case 'boss':return g.bestPct>=18;
+    case 'runs10':return g.runs>=10;
+    case 'hard':return g.hardBest>=10;
+  }
+  return false;
+}
+function bumpRun(run){
+  statsG.runs++;statsG.rex+=run.rex;statsG.cat+=run.cat;statsG.pigeons+=run.pigeons;
+  statsG.brawlsWon+=run.brawlsWon;
+  if(run.spots>=12)statsG.spotsAll++;
+  statsG.bestPct=Math.max(statsG.bestPct,run.pct);
+  statsG.bestSpots=Math.max(statsG.bestSpots,run.spots);
+  statsG.bestTotal=Math.max(statsG.bestTotal,run.total);
+  if(run.diff==='hard')statsG.hardBest=Math.max(statsG.hardBest,run.pct);
+  saveStatsG();
+  const fresh=[];
+  for(const a of ACH)if(!ach[a.id]&&achCond(a.id)){ach[a.id]=1;fresh.push(a);}
+  if(fresh.length){
+    saveAch();
+    fresh.forEach((a,i)=>setTimeout(()=>{
+      toast(LN().a_new(LN().ach[a.id][0]),'gold');
+      vib([30,60,30],'rigid');
+    },600+i*1400));
+  }
+}
+function showAch(){
+  const L=LN(),box=$('achList');
+  box.innerHTML=ACH.map(a=>{
+    const on=!!ach[a.id],d=L.ach[a.id];
+    return '<div class="achCard'+(on?'':' lk')+'"><div class="achIc">'+(on?a.ic:'🔒')+
+           '</div><div><b>'+d[0]+'</b><span>'+d[1]+'</span></div></div>';
+  }).join('');
+  $('statLine').textContent=L.ast(statsG.runs,statsG.bestTotal);
+  $('screenAch').classList.remove('hidden');
+}
+function doShare(){
+  const L=LN();
+  const txt=lastShare||('🐶 '+L.docTitle+'\n'+location.href);
+  const ok=()=>toastOnce('share',1,L.ui.shareOk,'gold');
+  try{if(navigator.share){navigator.share({title:L.docTitle,text:txt}).catch(()=>{});return;}}catch(e){}
+  try{navigator.clipboard.writeText(txt).then(ok).catch(()=>fallbackCopy(txt,ok));}
+  catch(e){fallbackCopy(txt,ok)}
+}
+function fallbackCopy(txt,ok){
+  try{
+    const ta=document.createElement('textarea');ta.value=txt;
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');ta.remove();ok();
+  }catch(e){}
+}
+
+function resetWorld(){
+  buildMap();
+  computeBlocked();
+  grid.set(blockedGrid);
+  counts.fill(0);counts[EMPTY]=freeCells;
+  tctx.clearRect(0,0,W,H);
+  for(const s of spots){s.owner=0;s.p1=0;s.p2=0;s.pulse=0;}
+  Object.assign(player,{x:150,y:562,vx:0,vy:0,a:0,sc:SK().base.sc,bladder:70,stationary:0,peeing:false,
+    aiT:0,aiPee:0,tx:150,ty:562,inBrawl:false,barkCd:0,brawl:null});
+  Object.assign(rival,{x:1520,y:940,vx:0,vy:0,a:Math.PI,state:'walk',t:0,fleeCd:0,stuck:0,peeing:false,inBrawl:false,brawl:null});
+  pickRivalTarget();
+  resetCat();
+  Object.assign(barb,{active:false,state:'gone',x:-100,y:-100,vx:0,vy:0,brawl:null,inBrawl:false,
+    everSpawned:false,spawnT:D().barbAt||0,attackCd:0,goneT:0,stuck:0});
+  resetBones();resetPigeons();
+  for(const w of bowls)w.cd=0;
+  drops.length=0;parts.length=0;floaters.length=0;rings.length=0;
+  pts=0;dispPts=0;timeLeft=D().time;warned10=false;shake=0;
+  Object.assign(stats,{chased:0,pigeons:0,pee:0,allSpots:false,catChased:0,brawls:0,brawlsWon:0});
+  cam.x=player.x;cam.y=player.y;
+  updateSpotHud();
+}
+function startGame(){
+  initAudio();
+  clearTimeout(showEndT);clearTimeout(barbWarnT);clearTimeout(hintT);
+  resetWorld();
+  bakeMap();bakeTop();
+  state='play';
+  screenTitleEl.classList.add('hidden');
+  screenEndEl.classList.add('hidden');
+  screenPauseEl.classList.add('hidden');
+  hud.classList.remove('hidden');
+  sndBark();
+  const L=LN();
+  toast(L.tStart(playerNameStr,L.skins[SK().key].n),'gold');
+  if(D().barbAt)barbWarnT=setTimeout(()=>{if(state==='play')toast(L.tBarbSoon,'red')},8000);
+  if(diffKey==='hard')setTimeout(()=>{if(state==='play')toast(L.tCatSoon,'slate')},1300);
+  if(!hintHidden){hintHidden=true;hintT=setTimeout(()=>hintEl.classList.add('hidden'),7000);}
+}
+function endGame(){
+  if(state!=='play')return;
+  state='end';stopPeeSnd();sndEnd();
+  showEndT=setTimeout(showEnd,900);
+}
+function showEnd(){
+  const L=LN();
+  const owned=spots.filter(s=>s.owner===OWN).length,P=pct(),skin=SK();
+  const mult=D().mult,bonus=Math.round(pts*(mult-1)),total=pts+bonus;
+  const bests=loadBests();
+  const prevBest=bests[diffKey]||0;
+  const newRec=total>prevBest;
+  if(newRec){bests[diffKey]=total;try{localStorage.setItem('topdog-best',JSON.stringify(bests))}catch(e){}}
+  if(newRec)vib([40,60,40,60,150],'rigid');
+  const dl=L.diffs[diffKey];
+  bumpRun({pct:P,spots:owned,total,diff:diffKey,rex:stats.chased,cat:stats.catChased,pigeons:stats.pigeons,brawlsWon:stats.brawlsWon});
+  lastShare='🐶 '+L.h1.replace(/<[^>]*>/g,'').toUpperCase()+' — '+playerNameStr+' · '+total+' ('+Math.round(P)+'% '+L.ui.stTerr+') · '+L.maps[mapKey]+' · '+dl+'\n'+location.href;
+  let r=L.ranks[L.ranks.length-1][1],s=L.ranks[L.ranks.length-1][2];
+  for(const [p,rr,ss] of L.ranks){if(P>=p){r=rr;s=ss;break;}}
+  $('rankTitle').textContent=r;$('rankSub').textContent=s;
+  $('endTag').textContent=playerNameStr+' · '+L.maps[mapKey]+' · '+L.skins[skin.key].n+' · '+dl;
+  $('recLine').classList.toggle('on',newRec);
+  if(newRec)$('recLine').textContent=L.newRec(total);
+  const rows=[
+    [L.ui.stMap,L.maps[mapKey]],
+    [L.ui.stBreed,L.skins[skin.key].n+' · '+L.sizes[skin.size].toLowerCase()],
+    [L.ui.stTerr,Math.round(P)+'%'],
+    [L.ui.stSpots,owned+' / 12'],
+    [L.ui.stBase,pts],
+    [L.bonus(mult),'+'+bonus],
+    [L.ui.stTotal,total],
+    [L.rec(dl),bests[diffKey]||total],
+    [L.ui.stRex,stats.chased+' ×'],
+  ];
+  if(D().barbAt)rows.push([L.ui.stBrawls,stats.brawls+' ('+L.ui.stWins+' '+stats.brawlsWon+')']);
+  if(D().cat)rows.push([L.ui.stCat,stats.catChased+' ×']);
+  rows.push([L.ui.stPigeons,stats.pigeons+' ×'],[L.ui.stPee,Math.round(stats.pee)+' '+L.ui.sec]);
+  $('statsBox').innerHTML=rows.map(([k,v])=>
+    `<div class="row${k===L.ui.stTotal?' total':''}"><span>${k}</span><b>${v}</b></div>`).join('');
+  screenEndEl.classList.remove('hidden');
+}
+function pauseGame(){
+  if(state!=='play')return;
+  state='pause';stopPeeSnd();
+  hud.classList.add('hidden');
+  screenPauseEl.classList.remove('hidden');
+}
+function resumeGame(){
+  if(state!=='pause')return;
+  state='play';last=performance.now(); // без рывка dt после паузы
+  hud.classList.remove('hidden');
+  screenPauseEl.classList.add('hidden');
+}
+function exitToMenu(){
+  if(state!=='pause'&&state!=='end')return;
+  clearTimeout(showEndT);clearTimeout(barbWarnT);clearTimeout(hintT);
+  stopPeeSnd();last=performance.now();
+  resetWorld();bakeMap();bakeTop(); // чистый аттракт-режим под меню
+  state='attract';
+  screenEndEl.classList.add('hidden');
+  screenPauseEl.classList.add('hidden');
+  screenSetEl.classList.add('hidden');
+  screenTutEl.classList.add('hidden');
+  hud.classList.add('hidden');
+  screenTitleEl.classList.remove('hidden');
+}
+
+// ---------- настройки ----------
+let settingsFrom='title';
+function openSettings(from){
+  settingsFrom=from;
+  if(from==='pause')screenPauseEl.classList.add('hidden');
+  screenSetEl.classList.remove('hidden');
+}
+function closeSettings(){
+  screenSetEl.classList.add('hidden');
+  if(settingsFrom==='pause')screenPauseEl.classList.remove('hidden');
+}
+
+// ---------- обучение ----------
+let tutIdx=0,tutPending=false;
+const TUT_ICONS=[
+  '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="9" fill="currentColor" stroke="none"/><path d="M32 3v7M32 54v7M3 32h7M54 32h7" stroke-linecap="round"/></svg>',
+  '<svg viewBox="0 0 64 64" fill="currentColor"><path d="M32 6C32 6 14 28 14 41a18 18 0 0 0 36 0C50 28 32 6 32 6Z"/><rect x="8" y="55" width="48" height="4" rx="2" opacity=".45"/></svg>',
+  '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M10 26v12h10l14 12V14L20 26H10Z" fill="currentColor" stroke="none"/><path d="M44 24a12 12 0 0 1 0 16M50 17a21 21 0 0 1 0 30"/></svg>',
+  '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8v48"/><path d="M18 10h30l-9 11 9 11H18Z" fill="currentColor" stroke="currentColor"/></svg>',
+  '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><circle cx="32" cy="32" r="24"/><path d="M32 16v16l11 8"/><circle cx="32" cy="32" r="2.6" fill="currentColor" stroke="none"/></svg>',
+];
+function renderTut(){
+  const L=LN(),step=L.tut[tutIdx],n=L.tut.length;
+  $('tutIcon').innerHTML=TUT_ICONS[tutIdx]||TUT_ICONS[0];
+  $('tutStepNo').textContent=L.ui.tutStepOf(tutIdx,n);
+  $('tutT').textContent=step.t;
+  $('tutD').innerHTML=step.d;
+  const dots=$('tutDots');dots.innerHTML='';
+  for(let i=0;i<n;i++){const d=document.createElement('i');if(i===tutIdx)d.className='on';dots.appendChild(d);}
+  $('btnTutNext').textContent=tutIdx<n-1?L.ui.tutNext:L.ui.tutGo;
+}
+function showTut(i){
+  tutIdx=i||0;
+  renderTut();
+  screenTutEl.classList.remove('hidden');
+}
+function finishTut(){
+  save.tut=1;persist();
+  screenTutEl.classList.add('hidden');
+  if(tutPending){tutPending=false;startGame();}
+}
+function skipTut(){finishTut();}
+function tryStart(){
+  initAudio();
+  if(!save.tut&&(LOWFI||/Android/i.test(navigator.userAgent))){
+    tutPending=true;showTut(0);return;
+  }
+  startGame();
+}
+
+// привязка Android-кнопки «назад» и автопаузы
+window.topdogBack=function(){
+  if(!screenTutEl.classList.contains('hidden')){skipTut();return;}
+  if(!screenSetEl.classList.contains('hidden')){closeSettings();return;}
+  if(state==='play')pauseGame();
+  else if(state==='pause')resumeGame();
+  else if(state==='end')exitToMenu();
+};
+window.topdogAutoPause=function(){pauseGame();};
+
+/* ================================================================
+   ВВОД
+================================================================ */
+addEventListener('keydown',e=>{
+  if(document.activeElement===nameInput){
+    if(e.code==='Enter'){nameInput.blur();tryStart();}
+    else if(e.code==='Escape')nameInput.blur();
+    return;
+  }
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+  initAudio();
+  key[e.code]=true;
+  if(e.code==='Space')input.space=true;
+  if(e.repeat)return;
+  if(e.code==='KeyM')toggleSound();
+  if(e.code==='KeyE'){input.bark=true;}
+  if(e.code==='KeyP'||e.code==='Escape'){
+    if(!screenSetEl.classList.contains('hidden'))closeSettings();
+    else if(state==='play')pauseGame();
+    else if(state==='pause')resumeGame();
+    else if(state==='end'&&e.code==='Escape')exitToMenu();
+  }
+  if(e.code==='Enter'&&(state==='attract'||state==='end'))tryStart();
+  if(e.code==='KeyR'&&state!=='attract')startGame();
+  if(state==='attract'){
+    if(e.code==='ArrowLeft')skinShift(-1);
+    if(e.code==='ArrowRight')skinShift(1);
+  }
+});
+addEventListener('keyup',e=>{
+  key[e.code]=false;
+  if(e.code==='Space')input.space=false;
+});
+addEventListener('pointerdown',()=>{initAudio();startMusic();},{once:false});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
+
+// ---------- кнопки меню ----------
+$('btnPlay').addEventListener('click',tryStart);
+$('btnAgain').addEventListener('click',tryStart);
+$('btnMenuEnd').addEventListener('click',exitToMenu);
+$('btnResume').addEventListener('click',resumeGame);
+$('btnRestart').addEventListener('click',startGame);
+$('btnMenuPause').addEventListener('click',exitToMenu);
+$('btnSet').addEventListener('click',()=>openSettings('title'));
+$('btnSetPause').addEventListener('click',()=>openSettings('pause'));
+$('btnSetBack').addEventListener('click',closeSettings);
+$('btnTutReplay').addEventListener('click',()=>showTut(0));
+$('btnTutNext').addEventListener('click',()=>{
+  tutIdx++;
+  if(tutIdx>=LN().tut.length)finishTut();else renderTut();
+});
+$('btnTutSkip').addEventListener('click',skipTut);
+$('btnSound').addEventListener('click',()=>{initAudio();toggleSound();});
+$('btnPause').addEventListener('click',()=>{state==='play'?pauseGame():resumeGame();});
+$('btnPause').addEventListener('touchstart',e=>{ // на мобильных — мгновенно, не дожидаясь click
+  e.preventDefault();e.stopPropagation();initAudio();
+  if(state==='play')pauseGame();else if(state==='pause')resumeGame();
+},{passive:false});
+$('skinLeft').addEventListener('click',e=>{skinShift(-1);e.currentTarget.blur();});
+$('skinRight').addEventListener('click',e=>{skinShift(1);e.currentTarget.blur();});
+$('skinPrev').addEventListener('click',()=>skinShift(1));
+
+// достижения и «Поделиться»
+$('btnAch').addEventListener('click',showAch);
+$('btnAchBack').addEventListener('click',()=>{$('screenAch').classList.add('hidden')});
+$('btnShare').addEventListener('click',doShare);
+
+// громкость
+const volSlider=$('volSlider'),volVal=$('volVal');
+volSlider.value=vol;volVal.textContent=vol+'%';
+volSlider.addEventListener('input',()=>{
+  vol=volSlider.value|0;
+  volVal.textContent=vol+'%';
+  applyVol();persist();
+});
+
+// музыка
+const musSlider=$('musSlider'),musVal=$('musVal');
+musSlider.value=musicVol;musVal.textContent=musicVol+'%';
+musSlider.addEventListener('input',()=>{
+  musicVol=musSlider.value|0;
+  musVal.textContent=musicVol+'%';
+  if(musicGain)musicGain.gain.setTargetAtTime(musicVal(),actx.currentTime,.05);
+  persist();
+});
+
+// вибрация
+const vibBtn=$('vibBtn');
+function applyVibBtn(){vibBtn.textContent=vibr?LN().ui.vibOn:LN().ui.vibOff;vibBtn.classList.toggle('on',vibr);}
+vibBtn.addEventListener('click',()=>{vibr=!vibr;applyVibBtn();if(vibr)vib(30,'light');persist();vibBtn.blur();});
+applyVibBtn();
+
+// графика
+document.querySelectorAll('.gfxBtn').forEach(b=>{
+  b.classList.toggle('on',b.dataset.q===qSetting);
+  b.addEventListener('click',()=>{
+    qSetting=b.dataset.q;
+    document.querySelectorAll('.gfxBtn').forEach(x=>x.classList.toggle('on',x===b));
+    setQuality(qSetting==='low'?'low':'high');
+    persist();b.blur();
+    toastOnce('gfx',1,LN().ui.gfx+': '+b.textContent,'slate');
+  });
+});
+
+// язык
+document.querySelectorAll('.langBtn[data-l]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    lang=b.dataset.l;persist();applyLang();
+    toastOnce('lang',1,LN().ui.language+': '+b.textContent,'slate');
+  });
+});
+
+nameInput.addEventListener('input',()=>{
+  playerNameStr=(nameInput.value.trim()||LN().defName).slice(0,12);
+  persist();
+});
+
+document.querySelectorAll('.optBtn[data-d]').forEach(b=>{
+  if(b.dataset.d===diffKey){
+    document.querySelectorAll('.optBtn[data-d]').forEach(x=>x.classList.toggle('on',x===b));
+  }
+  b.addEventListener('click',()=>{
+    diffKey=b.dataset.d;
+    document.querySelectorAll('.optBtn[data-d]').forEach(x=>x.classList.toggle('on',x===b));
+    persist();b.blur();
+    if(state==='attract'){cat.active=D().cat;if(cat.active)resetCat();}
+    toastOnce('diff',1,LN().tDiff(LN().diffs[diffKey]),'slate');
+  });
+});
+
+// карты
+document.querySelectorAll('.mapBtn').forEach(b=>{
+  if(b.dataset.m===mapKey){
+    document.querySelectorAll('.mapBtn').forEach(x=>x.classList.toggle('on',x===b));
+  }
+  b.addEventListener('click',()=>{
+    mapKey=b.dataset.m;
+    document.querySelectorAll('.mapBtn').forEach(x=>x.classList.toggle('on',x===b));
+    persist();b.blur();
+    resetWorld();bakeMap();bakeTop(); // аттракт-режим сразу на новой карте
+    toastOnce('map',1,LN().tMap(LN().maps[mapKey]),'slate');
+  });
+});
+
+// HUD-кнопки действий
+$('peeBtn').addEventListener('pointerdown',e=>{e.preventDefault();initAudio();input.btn=true;});
+for(const ev of ['pointerup','pointercancel','pointerleave'])
+  $('peeBtn').addEventListener(ev,()=>input.btn=false);
+$('barkBtn').addEventListener('pointerdown',e=>{e.preventDefault();initAudio();input.bark=true;});
+
+// ---------- сенсорное управление ----------
+if(IS_TOUCH)document.body.classList.add('touch');
+cv.addEventListener('touchstart',e=>{
+  e.preventDefault();initAudio();
+  document.body.classList.add('touch');
+  for(const t of e.changedTouches){
+    if(joy.id===null){
+      joy.id=t.identifier;joy.on=true;joy.ax=t.clientX;joy.ay=t.clientY;joy.vx=0;joy.vy=0;
+      const jb=$('joyBase'),js=$('joyStick');
+      jb.style.display=js.style.display='block';
+      jb.style.left=(t.clientX-58)+'px';jb.style.top=(t.clientY-58)+'px';
+      js.style.left=(t.clientX-26)+'px';js.style.top=(t.clientY-26)+'px';
+    }
+  }
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier!==joy.id)continue;
+    let dx=t.clientX-joy.ax,dy=t.clientY-joy.ay;
+    const d=Math.hypot(dx,dy),m=Math.min(d,48);
+    if(d>0){dx=dx/d*m;dy=dy/d*m;}
+    joy.vx=dx/48;joy.vy=dy/48;
+    $('joyStick').style.left=(joy.ax+dx-26)+'px';
+    $('joyStick').style.top=(joy.ay+dy-26)+'px';
+  }
+},{passive:false});
+const endTouch=e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===joy.id){
+      joy.id=null;joy.on=false;joy.vx=joy.vy=0;
+      $('joyBase').style.display=$('joyStick').style.display='none';
+    }
+  }
+};
+cv.addEventListener('touchend',endTouch);
+cv.addEventListener('touchcancel',endTouch);
+document.addEventListener('gesturestart',e=>e.preventDefault());
+
+// ---------- размер экрана и цикл ----------
+function resize(){
+  vw=innerWidth;vh=innerHeight;
+  dpr=(qSetting==='low'||qMode==='low')?1:Math.min(2,devicePixelRatio||1); // half-res только в быстром режиме
+  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);
+  cv.style.width=vw+'px';cv.style.height=vh+'px';
+}
+addEventListener('resize',resize);
+
+// ---------- адаптивное качество: следим за FPS и режем нагрузку при просадках ----------
+let qMode=(qSetting==='low')?'low':'high'; // 'low': half-слои карты + dpr 1
+let fpsAvg=60,qTimer=0,qUpT=0,bootChecked=false;
+function tuneQuality(dt){
+  const inst=dt>0?1/dt:60;
+  fpsAvg+=(inst-fpsAvg)*.08;
+  qTimer+=dt;
+  if(qTimer<3)return; // проверяем раз в 3 секунды, чтобы не дёргаться на спайках
+  if(qSetting!=='auto')return; // ручной режим: авто-подстройка выключена
+  qTimer=0;
+  // однократная защита от «зависания»: если первые кадры после старта цикла идут
+  // медленнее 15 FPS (медленный WebView/запекание слоёв) — режем нагрузку немедленно
+  if(!bootChecked&&state!=='attract'){bootChecked=true;if(fpsAvg<15)setQuality('low');}
+  if(qMode==='high'&&fpsAvg<45){setQuality('low');qUpT=0;}
+  else if(qMode==='low'&&fpsAvg>=57){
+    qUpT++;
+    if(qUpT>=3){setQuality('high');qUpT=0;} // плавный возврат качества теперь и на Android
+  }else qUpT=0;
+}
+function setQuality(m){
+  qMode=m;
+  if(m==='low'&&!gq)rebuildQ();
+  resize();
+}
+
+let last=performance.now(),pauseT=1; // pauseT=1 — фон паузы рисуем сразу же на первом кадре
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  pollPad();
+  tuneQuality(dt);
+  if(state==='pause'){ // под экраном паузы — лёгкий замороженный фон без физики и частиц
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle='#28241F';ctx.fillRect(0,0,vw,vh);
+    pauseT+=dt;
+    if(pauseT>=.1){ // ~10 Гц достаточно для статичной сцены: бережём GPU и батарею
+      pauseT=0;
+      ctx.save();
+      ctx.translate(Math.round(vw/2-cam.x),Math.round(vh/2-cam.y));
+      if(qMode==='low'&&gq){
+        const sx=Math.max(0,(cam.x-vw/2)/2),sy=Math.max(0,(cam.y-vh/2)/2),
+              sw=Math.min(W/2-sx,vw+2),sh=Math.min(H/2-sy,vh+2);
+        ctx.drawImage(gq,sx,sy,sw,sh,sx*2,sy*2,sw*2,sh*2);
+        if(kq)ctx.drawImage(kq,sx,sy,sw,sh,sx*2,sy*2,sw*2,sh*2);
+      }else{ctx.drawImage(groundC,0,0);ctx.drawImage(terrC,0,0);}
+      ctx.restore();
+    }
+    return;
+  }
+  update(dt);
+  render();
+  hudUpdate(dt);
+  if(!screenTitleEl.classList.contains('hidden'))drawSkinPreview(dt);
+}
+
+// ---------- запуск ----------
+applyMuteIcons();
+$('verTag').textContent='v'+APP_VER;
+$('verTag2').textContent='v'+APP_VER;
+
+// ---------- Telegram Mini App ----------
+const TMA=(()=>{try{return (window.Telegram&&Telegram.WebApp)?Telegram.WebApp:null}catch(e){return null}})();
+if(TMA){
+  try{TMA.ready()}catch(e){}
+  try{TMA.expand()}catch(e){}
+  try{TMA.disableVerticalSwipes&&TMA.disableVerticalSwipes()}catch(e){}
+  try{TMA.requestFullscreen&&TMA.requestFullscreen()}catch(e){}
+  try{TMA.setHeaderColor&&TMA.setHeaderColor('#2E2A26')}catch(e){}
+  try{TMA.setBackgroundColor&&TMA.setBackgroundColor('#2E2A26')}catch(e){}
+}
+
+// ---------- PWA: манифест на лету + service worker ----------
+try{
+  if(location.protocol==='https:'||location.hostname==='localhost'){
+    const mkIcon=s=>{
+      const c=document.createElement('canvas');c.width=c.height=s;
+      const g=c.getContext('2d'),u=s/24;
+      g.fillStyle='#2E2A26';g.fillRect(0,0,s,s);
+      g.fillStyle='#E8A33D';
+      ell(g,12*u,16*u,5.2*u,4.2*u);
+      [[6.6,10.6,2.2],[10.6,7.6,2.2],[14.6,7.6,2.2],[18.2,10.6,2.2]].forEach(p=>{
+        g.beginPath();g.arc(p[0]*u,p[1]*u,p[2]*u,0,TAU);g.fill();
+      });
+      return c.toDataURL('image/png');
+    };
+    const base=location.href.replace(/[^/]*$/,'');
+    const man={name:'Главный пёс',short_name:'Главный пёс',start_url:base,scope:base,
+      display:'fullscreen',orientation:'landscape',background_color:'#2E2A26',theme_color:'#2E2A26',
+      icons:[{src:mkIcon(192),sizes:'192x192',type:'image/png'},{src:mkIcon(512),sizes:'512x512',type:'image/png'}]};
+    const lm=document.createElement('link');lm.rel='manifest';
+    lm.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
+    document.head.appendChild(lm);
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+}catch(e){}
+
+applyLang();
+updateSkinUI();
+buildMap();
+computeBlocked();
+bakeMap();
+bakeTop();
+for(let i=0;i<2;i++)clouds.push(mkCloud());
+resetWorld();
+bakeMap();bakeTop(); // перезапечь после resetWorld (финальная карта)
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
