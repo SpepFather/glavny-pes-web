@@ -3237,7 +3237,7 @@ const MP={
   remotes:[],snapS:null,
   myInp:{ax:0,ay:0,p:0,b:0},inTimer:null,
   npcT:{r:null,b:null,c:null},
-  boardT:0,stunT:0,
+  boardT:0,stunT:0,brawlFx:null,
   COL:{1:'#EFC94C',2:'#7EC4E8',3:'#E88A6A',4:'#93A5BD',5:'#B08A5A'},
   SEATPAL:[null,'#EFC94C','#7EC4E8','#E88A6A'],
   L:{
@@ -3353,7 +3353,7 @@ const MP={
     else if(m.t==='start')this.onStart(m);
     else if(m.t==='snap')this.onSnap(m);
     else if(m.t==='end')this.onEnd(m);
-    else if(m.t==='err'){toastOnce('mperr',8,this.TT().syncErr,'slate');} // v1.5.1: ошибки сервера видны, но не спамят
+    else if(m.t==='err'){console.error('MP server:',m.msg);toastOnce('mperr',8,this.TT().syncErr,'slate');} // v1.5.1: ошибки сервера видны, но не спамят
     else if(m.t==='busy'){this.status(this.TT().full);try{this.ws.close()}catch(e){}}
   },
   showRoom(){
@@ -3400,7 +3400,7 @@ const MP={
     this.mpEnd=false;
     buildMap();computeBlocked();bakeMap();bakeTop();
     this.resetGrid();
-    this.active=true;this.inGame=true;this.stunT=0;
+    this.active=true;this.inGame=true;this.stunT=0;this.brawlFx=null;
     resetWorld();
     bones=m.bn.map(([x,y])=>({x,y,on:true,rt:0}));
     // мой пёс
@@ -3484,10 +3484,23 @@ const MP={
     else if(k==='pts'){floater(f[2],f[3],f[4],'#B37A16');}
     else if(k==='chase'){toastOnce('mpchase',3,mpT('chase'),'gold');}
     else if(k==='barbin'){sndRoar();shake=Math.max(shake,8);toast(mpT('barbIn'),'red');}
-    else if(k==='scat'){
+    else if(k==='scat'){ // v1.5.1: формат [тип, место, x, y] — раньше место читали из f[3] (это координата!)
+      // поэтому стан не вешался, имя было пустое, драки не было видно
+      const seat=f[1],bx=f[2],by=f[3];
       sndFight();shake=Math.max(shake,10);
-      toast(MP_T.scat(f[3]===this.seat?this.TT().you:(this.players.find(p=>p&&p.seat===f[3])||{name:''}).name),'red');
-      if(f[3]===this.seat){this.stunT=.8;vib([60,40,60],'rigid');}
+      const nm=seat===this.seat?this.TT().you:((this.players.find(p=>p&&p.seat===seat)||{}).name||'?');
+      toast(MP_T.scat(nm),'red');
+      // анимация драки: облачко пыли над обоими, как в одиночке
+      const vic=seat===this.seat?player:((this.remotes.find(r=>r.seat===seat)||{}).dog);
+      if(vic){
+        const mx2=(vic.x+bx)/2,my2=(vic.y+by)/2;
+        this.brawlFx={x:mx2,y:my2,t:.8,fxT:0};
+        for(let i=0;i<10;i++)parts.push({x:mx2+rnd(-14,14),y:my2+rnd(-14,14),vx:rnd(-90,90),vy:rnd(-90,90),
+          life:.5,ml:.5,r:rnd(2,4),col:'#F2C94C',type:'star'});
+        dust(mx2,my2,8,70);
+        if(seat===this.seat){player.inBrawl=true;barb.inBrawl=true;}
+      }
+      if(seat===this.seat){this.stunT=.8;vib([60,40,60],'rigid');}
     }
     else if(k==='barkbig'){toast(mpT('barkBig'),'gold');sndYelp();}
     else if(k==='barksmall'){toast(mpT('barkSmall'),'red');sndRoar();}
@@ -3508,9 +3521,23 @@ const MP={
     const l=Math.hypot(ax,ay);if(l>1){ax/=l;ay/=l;}
     this.myInp.ax=ax;this.myInp.ay=ay;
     this.myInp.p=(input.space||input.btn)?1:0;
-    if(input.bark){input.bark=false;this.myInp.b=1;}
-    if(input.padBark){input.padBark=false;this.myInp.b=1;}
+    // v1.5.1: индикатор лая — оптимистично ставим откат локально
+    // (сервер авторитетен: значение сверяется со снапшотом ниже)
+    if(input.bark){input.bark=false;this.myInp.b=1;
+      if(player.barkCd<=0&&this.stunT<=0)player.barkCd=BARK_CD;}
+    if(input.padBark){input.padBark=false;this.myInp.b=1;
+      if(player.barkCd<=0&&this.stunT<=0)player.barkCd=BARK_CD;}
     if(this.stunT>0)this.stunT-=dt;
+    // v1.5.1: облачко драки с Барбосом — пыхтим пылью, как updateBrawl в одиночке
+    if(this.brawlFx){
+      const bf=this.brawlFx;
+      bf.t-=dt;bf.fxT-=dt;
+      if(bf.fxT<=0){bf.fxT=.12;dust(bf.x,bf.y,2,60);}
+      if(bf.t<=0){
+        dust(bf.x,bf.y,8,70);
+        this.brawlFx=null;player.inBrawl=false;barb.inBrawl=false;
+      }
+    }
     if(!this.inGame){ // после финала — только частицы
       updateParts(dt);
       for(let i=floaters.length-1;i>=0;i--){floaters[i].life-=dt*.9;if(floaters[i].life<=0)floaters.splice(i,1);}
@@ -3535,9 +3562,10 @@ const MP={
     if(m&&m.s&&m.s[this.seat]){
       const s0=m.s[this.seat];
       const dx=s0[0]-player.x,dy=s0[1]-player.y,dd=Math.hypot(dx,dy);
-      if(dd>70){player.x=s0[0];player.y=s0[1];}
+      if(dd>(this.stunT>0?24:70)){player.x=s0[0];player.y=s0[1];} // v1.5.1: после схватки резче (отбрасывание)
       else{player.x+=dx*Math.min(1,dt*4);player.y+=dy*Math.min(1,dt*4);}
       player.peeing=!!s0[4];player.bladder=s0[5];
+      if(s0[6]>player.barkCd)player.barkCd=s0[6]; // v1.5.1: откат лая из авторитетного снапшота
     }
     // чужие псы
     // v1.5.1: если пса нет в снапшотах — 2 с и убираем (выход из матча;
@@ -3613,6 +3641,7 @@ const MP={
   onEnd(m){
     if(!this.inGame)return;
     this.inGame=false;this.mpEnd=true;this.active=true;
+    this.brawlFx=null;player.inBrawl=false;barb.inBrawl=false; // v1.5.1: не оставляем пса в облачке драки
     if(this.inTimer){clearInterval(this.inTimer);this.inTimer=null;}
     state='end';stopPeeSnd();sndEnd();
     vib([40,60,40,60,150],'rigid');
@@ -3657,6 +3686,7 @@ const MP={
   },
   leave(toTitle){
     this.inGame=false;this.active=false;this.mpEnd=false;
+    this.brawlFx=null;player.inBrawl=false; // v1.5.1
     if(this.inTimer){clearInterval(this.inTimer);this.inTimer=null;}
     if(this.ws){try{this.ws.close()}catch(e){}this.ws=null;}
     $('mpBoard').classList.add('hidden');
