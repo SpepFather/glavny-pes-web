@@ -449,7 +449,7 @@
 ================================================================ */
 
 // ---------- версия ----------
-const APP_VER='1.5.0';
+const APP_VER='1.5.1';
 
 // ---------- утилиты ----------
 const TAU=Math.PI*2;
@@ -2829,6 +2829,7 @@ function showEnd(){
 function pauseGame(){
   if(state!=='play')return;
   state='pause';stopPeeSnd();
+  if(MP.active&&MP.inGame){MP.myInp.ax=0;MP.myInp.ay=0;MP.myInp.p=0;MP.myInp.b=0;} // v1.5.1: на паузе пёс останавливается и на сервере
   hud.classList.add('hidden');
   screenPauseEl.classList.remove('hidden');
 }
@@ -3144,10 +3145,12 @@ function frame(now){
   tuneQuality(dt);
   if(state==='pause'){ // под экраном паузы — лёгкий замороженный фон без физики и частиц
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.fillStyle='#28241F';ctx.fillRect(0,0,vw,vh);
     pauseT+=dt;
     if(pauseT>=.1){ // ~10 Гц достаточно для статичной сцены: бережём GPU и батарею
+      // v1.5.1: заливка фона ТОЛЬКО вместе с перерисовкой мира (раньше заливалась
+      // каждый кадр, а мир рисовался раз в 100 мс — экран мерцал)
       pauseT=0;
+      ctx.fillStyle='#28241F';ctx.fillRect(0,0,vw,vh);
       ctx.save();
       ctx.translate(Math.round(vw/2-cam.x),Math.round(vh/2-cam.y));
       if(qMode==='low'&&gq){
@@ -3242,22 +3245,26 @@ const MP={
       wait:'ждём вожака…',start:'вожак начал игру',inv:(c,l)=>'МЕТЬ СО МНОЙ! 🐶 Код: '+c+'\n→ @glavny_pes_bot → кнопка МЕНЮ → С ДРУЗЬЯМИ → ВВОД КОДА'+(l?'\n'+l:''),
       join:s=>s+' вступил в драку!',left:s=>s+' убежал по делам',copied:'Скопировано в буфер!',
       full:'КОМНАТА ПОЛНА (макс 3 пса)',bad:'нет такой комнаты',down:'сервер недоступен — проверь сеть',
-      disc:'связь оборвалась',you:'Ты',mpT:'МУЛЬТИПЛЕЕР',st1:'место',st2:'территория',st3:'очки'},
+      disc:'связь оборвалась',you:'Ты',mpT:'МУЛЬТИПЛЕЕР',st1:'место',st2:'территория',st3:'очки',
+      syncErr:'сбой кадра синхронизации'},
     en:{t1:'TOP DOG OF THE BLOCK!',t2:'victory!',place:m=>m===1?'1ST PLACE':m===2?'2ND PLACE':'3RD PLACE',
       wait:'waiting for the host…',start:'host started the game',inv:(c,l)=>'MARK WITH ME! 🐶 Code: '+c+'\n→ @glavny_pes_bot → MENU button → WITH FRIENDS → enter code'+(l?'\n'+l:''),
       join:s=>s+' joined the fight!',left:s=>s+' ran off on errands',copied:'Copied!',
       full:'ROOM IS FULL (3 dogs max)',bad:'no such room',down:'server unreachable — check network',
-      disc:'connection lost',you:'You',mpT:'MULTIPLAYER',st1:'place',st2:'territory',st3:'points'},
+      disc:'connection lost',you:'You',mpT:'MULTIPLAYER',st1:'place',st2:'territory',st3:'points',
+      syncErr:'sync frame hiccup'},
     zh:{t1:'街区狗王！',t2:'胜利！',place:m=>m===1?'第 1 名':m===2?'第 2 名':'第 3 名',
       wait:'等待房主…',start:'房主已开始游戏',inv:(c,l)=>'一起来占地盘！🐶 房间码: '+c+'\n→ @glavny_pes_bot → 菜单按钮 → 好友对战 → 输入房间码'+(l?'\n'+l:''),
       join:s=>s+' 参战了！',left:s=>s+' 先走一步',copied:'已复制！',
       full:'房间已满（最多 3 条狗）',bad:'没有这个房间',down:'服务器不可达 — 检查网络',
-      disc:'连接中断',you:'你',mpT:'多人对战',st1:'名次',st2:'领地',st3:'分数'},
+      disc:'连接中断',you:'你',mpT:'多人对战',st1:'名次',st2:'领地',st3:'分数',
+      syncErr:'同步帧小故障'},
     es:{t1:'¡PERRO JEFE DEL BARRIO!',t2:'¡victoria!',place:m=>m===1?'1.er PUESTO':m===2?'2.º PUESTO':'3.er PUESTO',
       wait:'esperando al anfitrión…',start:'el anfitrión empezó',inv:(c,l)=>'¡MARCA CONMIGO! 🐶 Código: '+c+'\n→ @glavny_pes_bot → botón MENÚ → CON AMIGOS → introduce el código'+(l?'\n'+l:''),
       join:s=>s+' se unió a la pelea!',left:s=>s+' se fue de recado',copied:'¡Copiado!',
       full:'SALA LLENA (máx. 3 perros)',bad:'sala inexistente',down:'servidor inaccesible — revisa la red',
-      disc:'conexión perdida',you:'Tú',mpT:'MULTIJUGADOR',st1:'puesto',st2:'territorio',st3:'puntos'},
+      disc:'conexión perdida',you:'Tú',mpT:'MULTIJUGADOR',st1:'puesto',st2:'territorio',st3:'puntos',
+      syncErr:'fallo puntual de sincronización'},
   },
   TT(){return this.L[lang]||this.L.ru;},
 
@@ -3346,6 +3353,7 @@ const MP={
     else if(m.t==='start')this.onStart(m);
     else if(m.t==='snap')this.onSnap(m);
     else if(m.t==='end')this.onEnd(m);
+    else if(m.t==='err'){toastOnce('mperr',8,this.TT().syncErr,'slate');} // v1.5.1: ошибки сервера видны, но не спамят
     else if(m.t==='busy'){this.status(this.TT().full);try{this.ws.close()}catch(e){}}
   },
   showRoom(){
@@ -3431,6 +3439,17 @@ const MP={
   // ---------- снапшот ----------
   onSnap(m){
     if(!this.inGame)return;
+    // v1.5.1: события снапшота применяем РОВНО ОДИН РАЗ — здесь, при приходе.
+    // Раньше они обрабатывались в update() на каждом кадре рендера (60 fps
+    // против 20 Гц снапшотов) — каждое уведомление показывалось 2-3 раза.
+    if(m.ev){
+      for(const e of m.ev){
+        if(e.st)this.claim(e.st[0],e.st[1],e.st[2],e.st[3]);
+        else if(e.er)this.erase(e.er[0],e.er[1],e.er[2]);
+        else if(e.fx)this.onFx(e.fx);
+      }
+      m.ev=null;
+    }
     this.snapS=m;
     timeLeft=m.tm;
     if(m.pts)pts=m.pts[this.seat]||0;
@@ -3457,21 +3476,21 @@ const MP={
     }
     else if(k==='bone'){sndCoin();floater(f[1],f[2]-18,'+25','#8A5E0E');
       if(f[3]===this.seat){vib(20,'light');dust(f[1],f[2],3,30);}}
-    else if(k==='water'){sndDrink();if(f[3]===this.seat)toastOnce('water',4,MP_T.water,'gold');}
+    else if(k==='water'){sndDrink();if(f[3]===this.seat)toastOnce('water',4,mpT('water'),'gold');}
     else if(k==='spot'){sndJingle();toast(MP_T.spot(f[3]===this.seat?this.TT().you:(this.players.find(p=>p&&p.seat===f[3])||{name:''}).name),'gold');
       if(f[3]===this.seat)vib([30,60,30],'rigid');}
     else if(k==='yelp'){sndYelp();}
     else if(k==='meow'){sndMeow();}
     else if(k==='pts'){floater(f[2],f[3],f[4],'#B37A16');}
-    else if(k==='chase'){toastOnce('mpchase',3,MP_T.chase,'gold');}
-    else if(k==='barbin'){sndRoar();shake=Math.max(shake,8);toast(MP_T.barbIn,'red');}
+    else if(k==='chase'){toastOnce('mpchase',3,mpT('chase'),'gold');}
+    else if(k==='barbin'){sndRoar();shake=Math.max(shake,8);toast(mpT('barbIn'),'red');}
     else if(k==='scat'){
       sndFight();shake=Math.max(shake,10);
       toast(MP_T.scat(f[3]===this.seat?this.TT().you:(this.players.find(p=>p&&p.seat===f[3])||{name:''}).name),'red');
       if(f[3]===this.seat){this.stunT=.8;vib([60,40,60],'rigid');}
     }
-    else if(k==='barkbig'){toast(MP_T.barkBig,'gold');sndYelp();}
-    else if(k==='barksmall'){toast(MP_T.barkSmall,'red');sndRoar();}
+    else if(k==='barkbig'){toast(mpT('barkBig'),'gold');sndYelp();}
+    else if(k==='barksmall'){toast(mpT('barkSmall'),'red');sndRoar();}
     else if(k==='left'){const s=(this.players.find(p=>p&&p.seat===f[1])||{name:'?'}).name;
       this.remotes=this.remotes.filter(r=>r.seat!==f[1]);
       toast(this.TT().left(s),'slate');}
@@ -3521,12 +3540,21 @@ const MP={
       player.peeing=!!s0[4];player.bladder=s0[5];
     }
     // чужие псы
-    if(m&&m.s)for(const r of this.remotes){
+    // v1.5.1: если пса нет в снапшотах — 2 с и убираем (выход из матча;
+    // раньше он замерал на месте и рисовался до конца матча)
+    if(m&&m.s){
+      this.remotes=this.remotes.filter(r=>{
+        const s=m.s[r.seat];
+        if(!s){r.missT=(r.missT||0)+1;return r.missT<=40;}
+        r.missT=0;return true;
+      });
+      for(const r of this.remotes){
       const s=m.s[r.seat];if(!s)continue;
       const d=r.dog;
       d.x+=(s[0]-d.x)*Math.min(1,dt*14);d.y+=(s[1]-d.y)*Math.min(1,dt*14);
       d.a=lerpAng(d.a,s[2],Math.min(1,dt*12));
       d.moving=!!s[3];d.peeing=!!s[4];d.phase=s[8]||0;
+      }
     }
     // NPC
     if(m){
@@ -3541,12 +3569,6 @@ const MP={
     if(this.npcT.b){barb.active=true;barb.state=this.npcT.b.st==='gone'?'gone':(this.npcT.b.st||'patrol');
       if(barb.state!=='gone'){sm(barb,this.npcT.b);barb.moving=this.npcT.b.mv;}}
     if(this.npcT.c){cat.active=true;cat.state=this.npcT.c.st;sm(cat,this.npcT.c);cat.moving=this.npcT.c.mv;}
-    // события
-    if(m&&m.ev)for(const e of m.ev){
-      if(e.st)this.claim(e.st[0],e.st[1],e.st[2],e.st[3]);
-      else if(e.er)this.erase(e.er[0],e.er[1],e.er[2]);
-      else if(e.fx)this.onFx(e.fx);
-    }
     // камера
     const tx=clamp(player.x+Math.cos(player.a)*36,vw/2,W-vw/2);
     const ty=clamp(player.y+Math.sin(player.a)*36,vh/2,H-vh/2);
@@ -3690,11 +3712,14 @@ const MP_T={
   barkBig:{ru:'БАРБОС ОШЕЛОМЛЁН ДЕРЗОСТЬЮ!',en:'BARBOS IS STUNNED BY THE NERVE!',zh:'巴博斯被吓住了！',es:'¡BARBOS ATÓNITO ANTE TANTA CARA DURA!'},
   barkSmall:{ru:'БАРБОСА НЕ ИСПУГАТЬ! БЕГИ!',en:'CANNOT SCARE BARBOS! RUN!',zh:'吓不跑巴博斯！快跑！',es:'¡A BARBOS NO SE ASUSTA! ¡CORRE!'},
 };
+// v1.5.1: выбор строки по языку — раньше объект уезжал в toast() целиком и рисовал «[object Object]»
+function mpT(k){const v=MP_T[k];return typeof v==='function'?v:(v[lang]||v.ru);}
 function esc(s){return (''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // скин-базы для чужих псов (масштаб)
 const SKBASEC=[{sc:.84},{sc:.84},{sc:.84},{sc:1},{sc:1},{sc:1},{sc:1.22},{sc:1.22},{sc:1.22}];
 
 MP.init();
+window.__MP=MP; // отладочный доступ (автотесты и поддержка)
 
 </script>
 </body>
