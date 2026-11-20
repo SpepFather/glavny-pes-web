@@ -1,6 +1,6 @@
 /* Главный пёс — service worker: офлайн-кэш */
-const C='topdog-v152';
-const ASSETS=['./','index.html'];
+const C='topdog-v153';
+const ASSETS=['./','index.html','game.css?v=11503','game-core.js?v=11503','game-mp.js?v=11503','discord-sdk.mjs'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));

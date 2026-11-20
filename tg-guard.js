@@ -1,0 +1,1 @@
+if(/[?&]frame_id=/.test(location.search)||/(^|\.)discordsays\.com$/.test(location.hostname)){window.__skipTG=1;}else{var s=document.createElement("script");s.src="https://telegram.org/js/telegram-web-app.js";s.async=false;document.head.appendChild(s);}
