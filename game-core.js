@@ -8,8 +8,26 @@
    выход в меню, оптимизация под Android (WebView-порт).
 ================================================================ */
 
+// ---------- v1.5.4: диагностический оверлей (живой тест в Discord) ----------
+window.__diag={boot:0,errs:[]};
+(function(){
+  const show=(msg,color)=>{
+    try{
+      let d=document.getElementById('__diagBox');
+      if(!d){d=document.createElement('div');d.id='__diagBox';
+        d.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:95%;pointer-events:none;font:11px/1.35 monospace;background:#1a1713;color:#fff;padding:6px 8px;border:1px solid '+(color||'#E8A33D')+';border-radius:8px;white-space:pre-wrap;word-break:break-all';
+        (document.body||document.documentElement).appendChild(d);}
+      d.textContent=msg;d.style.borderColor=color||'#E8A33D';
+    }catch(e){}
+  };
+  window.__diagShow=show;
+  window.addEventListener('error',e=>{window.__diag.errs.push(String(e.message||e));show('ERR: '+(e.message||e)+' @'+(e.filename||'')+':'+(e.lineno||0),'#ff6b6b');},true);
+  window.addEventListener('unhandledrejection',e=>{const r=String(e.reason&&e.reason.message||e.reason||'');window.__diag.errs.push(r);show('PROMISE: '+r,'#ff6b6b');});
+  show('BOOT v1.5.4…','#8CE99A');
+})();
+
 // ---------- версия ----------
-const APP_VER='1.5.2';
+const APP_VER='1.5.4';
 
 // ---------- утилиты ----------
 const TAU=Math.PI*2;
@@ -31,6 +49,7 @@ const LOWFI=IS_TOUCH; // cap частиц и прочие урезания
 const DROP_CAP=LOWFI?180:260;
 
 // ---------- DOM ----------
+try{window.__diag&&window.__diagShow('DOM…','#8CE99A');}catch(e){}
 const cv=document.getElementById('game'),ctx=cv.getContext('2d',{alpha:false,powerPreference:'high-performance'});
 const mmC=document.getElementById('minimap'),mm=mmC.getContext('2d');
 const $=id=>document.getElementById(id);
@@ -2756,20 +2775,27 @@ function dcRoomCode(iid){ // instance_id -> детерминированный 4
   return c;
 }
 async function initDiscord(){
+  const D=m=>{try{window.__diagShow(m,'#59C0FF')}catch(e){}};
   try{
+    D('DC: import SDK…');
     const sdk=await import('./discord-sdk.mjs');
+    D('DC: ready…');
     const ds=new sdk.DiscordSDK(DC_APP_ID);
     await ds.ready();
+    D('DC: authorize…');
     const {code}=await ds.commands.authorize({client_id:DC_APP_ID,response_type:'code',state:'',prompt:'none',scope:['identify','guilds','applications.commands']});
+    D('DC: token…');
     const tr=await fetch('/discord/token',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code})});
     const tj=await tr.json();
     if(!tj.ok)throw new Error(tj.error||'token');
+    D('DC: authenticate…');
     const auth=await ds.commands.authenticate({access_token:tj.access_token});
     if(!auth||!auth.user)throw new Error('auth');
     const un=String(auth.user.global_name||auth.user.username||'').trim()||'Бобик';
     try{save.name=un.slice(0,12);nameInput.value=save.name;playerNameStr=save.name;}catch(e){} // v1.5.2: и playerNameStr — именно он уходит в WS
     const iid=ds.instanceId||new URLSearchParams(location.search).get('instance_id')||'';
     const rc=iid?dcRoomCode(iid):'';
+    D('DC: OK, room '+rc);
     if(rc&&/^[A-Z0-9]{4}$/.test(rc)){
       const tryJoin=n=>{ // ждём загрузки скрипта мультиплеера (MP в следующем <script>)
         if(!window.__mpReady){if(n>0)setTimeout(()=>tryJoin(n-1),300);return;}
@@ -2779,6 +2805,7 @@ async function initDiscord(){
     }
   }catch(e){
     console.warn('Discord init:',(e&&e.message)||e);
+    try{window.__diagShow('DC ERR: '+((e&&e.message)||e),'#ff6b6b')}catch(_){}
     try{toast('Discord: '+((e&&e.message)||'ошибка авторизации'),'red');}catch(_){}
   }
 }
@@ -2824,3 +2851,4 @@ resetWorld();
 bakeMap();bakeTop(); // перезапечь после resetWorld (финальная карта)
 resize();
 requestAnimationFrame(frame);
+try{window.__diag&&window.__diagShow('CORE OK v1.5.4','#8CE99A');}catch(e){}
