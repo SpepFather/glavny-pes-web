@@ -449,7 +449,7 @@
 ================================================================ */
 
 // ---------- версия ----------
-const APP_VER='1.5.1';
+const APP_VER='1.5.2';
 
 // ---------- утилиты ----------
 const TAU=Math.PI*2;
@@ -3185,6 +3185,45 @@ if(TMA){
   try{TMA.setBackgroundColor&&TMA.setBackgroundColor('#2E2A26')}catch(e){}
 }
 
+// ---------- Discord Activity ----------
+const IS_DISCORD=(()=>{try{return /(^|\.)discordsays\.com$/.test(location.hostname)||/[?&]frame_id=/.test(location.search);}catch(e){return false}})();
+const DC_APP_ID='1573411949725753565';
+function dcRoomCode(iid){ // instance_id -> детерминированный 4-символьный код комнаты (одинаковый для всех в одном канале/встрече)
+  let h=2166136261;const s=String(iid);
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let x=h%331776,c='';
+  for(let i=0;i<4;i++){c+=A[x%24];x=Math.floor(x/24);}
+  return c;
+}
+async function initDiscord(){
+  try{
+    const sdk=await import('./discord-sdk.mjs');
+    const ds=new sdk.DiscordSDK(DC_APP_ID);
+    await ds.ready();
+    const {code}=await ds.commands.authorize({client_id:DC_APP_ID,response_type:'code',state:'',prompt:'none',scope:['identify','guilds','applications.commands']});
+    const tr=await fetch('/discord/token',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code})});
+    const tj=await tr.json();
+    if(!tj.ok)throw new Error(tj.error||'token');
+    const auth=await ds.commands.authenticate({access_token:tj.access_token});
+    if(!auth||!auth.user)throw new Error('auth');
+    const un=String(auth.user.global_name||auth.user.username||'').trim()||'Бобик';
+    try{save.name=un.slice(0,12);nameInput.value=save.name;}catch(e){}
+    const iid=ds.instanceId||new URLSearchParams(location.search).get('instance_id')||'';
+    const rc=iid?dcRoomCode(iid):'';
+    if(rc&&/^[A-Z0-9]{4}$/.test(rc)){
+      const tryJoin=n=>{ // ждём загрузки скрипта мультиплеера (MP в следующем <script>)
+        if(!window.__mpReady){if(n>0)setTimeout(()=>tryJoin(n-1),300);return;}
+        MP.openLobby();setTimeout(()=>MP.join(rc),400);
+      };
+      tryJoin(20);
+    }
+  }catch(e){
+    console.warn('Discord init:',(e&&e.message)||e);
+    try{toast('Discord: '+((e&&e.message)||'ошибка авторизации'),'red');}catch(_){}
+  }
+}
+if(IS_DISCORD)initDiscord();
+
 // ---------- PWA: манифест на лету + service worker ----------
 try{
   if(location.protocol==='https:'||location.hostname==='localhost'){
@@ -3206,7 +3245,7 @@ try{
     const lm=document.createElement('link');lm.rel='manifest';
     lm.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
     document.head.appendChild(lm);
-    if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+    if(!IS_DISCORD&&'serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 }catch(e){}
 
@@ -3230,7 +3269,7 @@ requestAnimationFrame(frame);
    предсказание, чужие — сглаживание снапшотов.
 ================================================================ */
 const MP={
-  BASE:'wss://glavny-pes.glavny-pes.workers.dev',
+  BASE:IS_DISCORD?('wss://'+location.host):'wss://glavny-pes.glavny-pes.workers.dev',
   active:false,inGame:false,ws:null,seat:-1,code:'',isHost:false,
   map:'yards',diff:'normal',players:[],
   grid:null,counts:null,freeCells:1,myPct:0,
@@ -3364,18 +3403,19 @@ const MP={
   },
   renderLobby(){
     const M=this.players.filter(Boolean);
+    const LNn=LN();
     const box=$('lobbyPlayers');
     box.innerHTML=M.map(p=>{
       const nm=p.seat===this.seat?p.name+' ('+this.TT().you+')':p.name;
+      const skn=(SKINS[p.skin]&&LNn.skins[SKINS[p.skin].key]||{}).n||''; // v1.5.2: у SKINS нет .name — было «undefined»
       return '<div class="lobbyRow"><span class="who"><span class="dot" style="background:'+
-        this.SEATPAL[p.seat+1]+'"></span>'+esc(nm)+(p.host?' 🏁':'')+'</span><b>'+SKINS[p.skin].name+'</b></div>';
+        this.SEATPAL[p.seat+1]+'"></span>'+esc(nm)+(p.host?' 🏁':'')+'</span><b>'+esc(skn)+'</b></div>';
     }).join('');
-    const LNn=LN();
     $('lobbyMapName').textContent=(LNn.maps&&LNn.maps[this.map])||this.map;
     $('lobbyDiffName').textContent=(LNn.diffs&&LNn.diffs[this.diff])||this.diff;
     $('hostCtls').classList.toggle('hidden',!this.isHost);
     $('btnLobbyStart').style.display=this.isHost?'':'none';
-    $('codeHint').textContent=this.isHost?MP_T.hostCode:MP_T.code;
+    $('codeHint').textContent=this.isHost?mpT('hostCode'):mpT('code'); // v1.5.2: mpT() выбирает строку по языку — было «[object Object]»
     document.querySelectorAll('.lobMapBtn').forEach(b=>b.classList.toggle('on',b.dataset.m===this.map));
     document.querySelectorAll('.lobDiffBtn').forEach(b=>b.classList.toggle('on',b.dataset.d===this.diff));
     this.status(M.length<2?this.TT().wait:'');
@@ -3749,6 +3789,7 @@ function esc(s){return (''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':
 const SKBASEC=[{sc:.84},{sc:.84},{sc:.84},{sc:1},{sc:1},{sc:1},{sc:1.22},{sc:1.22},{sc:1.22}];
 
 MP.init();
+window.__mpReady=true;
 window.__MP=MP; // отладочный доступ (автотесты и поддержка)
 
 </script>

@@ -1,5 +1,5 @@
 /* Главный пёс — service worker: офлайн-кэш */
-const C='topdog-v151';
+const C='topdog-v152';
 const ASSETS=['./','index.html'];
 
 self.addEventListener('install',e=>{
