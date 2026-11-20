@@ -3207,7 +3207,7 @@ async function initDiscord(){
     const auth=await ds.commands.authenticate({access_token:tj.access_token});
     if(!auth||!auth.user)throw new Error('auth');
     const un=String(auth.user.global_name||auth.user.username||'').trim()||'Бобик';
-    try{save.name=un.slice(0,12);nameInput.value=save.name;}catch(e){}
+    try{save.name=un.slice(0,12);nameInput.value=save.name;playerNameStr=save.name;}catch(e){} // v1.5.2: и playerNameStr — именно он уходит в WS
     const iid=ds.instanceId||new URLSearchParams(location.search).get('instance_id')||'';
     const rc=iid?dcRoomCode(iid):'';
     if(rc&&/^[A-Z0-9]{4}$/.test(rc)){
@@ -3223,6 +3223,10 @@ async function initDiscord(){
   }
 }
 if(IS_DISCORD)initDiscord();
+if(IS_DISCORD){ // v1.5.2: плашка-индикатор при живом тесте в Discord
+  try{const b=document.createElement('div');b.textContent='DISCORD ACTIVITY';b.style.cssText='position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:999;font:700 10px sans-serif;letter-spacing:1px;color:#8CE99A;background:rgba(40,36,31,.85);border:1px solid #8CE99A;border-radius:10px;padding:3px 10px;pointer-events:none';
+  document.documentElement.appendChild(b);setTimeout(()=>b.remove(),6000);}catch(e){}
+}
 
 // ---------- PWA: манифест на лету + service worker ----------
 try{
