@@ -1,12 +1,13 @@
 // Мультиплеер-клиент (3 пса, WSS-комнаты) — перенос 1:1 с game-mp.js
 import { W, H, GW, GH, CELL, TAU, BLOCKED, OWN, REX, rnd, clamp, dist, lerpAng, $, LOWFI } from './types';
 import { state, setState, player, rival, cat, barb, mapGeom, SK, SKINS, LN, lang, playerNameStr, skinIdx, setBones, getBones } from './state';
-import { buildMap, computeBlocked, bakeMap, bakeTop, blockedGrid, paintStamp, eraseStamp } from './world';
+import { buildMap, computeBlocked, bakeMap, bakeTop, blockedGrid, paintStamp, eraseStamp, collide } from './world';
 import { rings, parts, floaters, drops } from './state';
 import { toast, toastOnce, floater, dust, drawLabel, drawParts, updateParts } from './fx';
 import { drawDog } from './sprites';
 import { initAudio, sndBark, sndYelp, sndMeow, sndCoin, sndDrink, sndJingle, sndRoar, sndFight, sndEnd, stopPeeSnd, vib } from './audio';
 import { IS_DISCORD, TMA } from './platform';
+import { key as INPUT_KEY, input as INPUT_INPUT, joy as INPUT_JOY } from './input';
 import { persist } from './game';
 import type { DogState } from './types';
 
@@ -88,6 +89,8 @@ interface SnapMsg {
 interface DrkEntity { x: number; y: number; a: number; ph: number; vx: number; vy: number; mv: boolean; err: number; lastN: number }
 const COL: Record<number, string> = { 1: '#EFC94C', 2: '#7EC4E8', 3: '#E88A6A', 4: '#93A5BD', 5: '#B08A5A' };
 const SEATPAL: (string | null)[] = [null, '#EFC94C', '#7EC4E8', '#E88A6A'];
+// v2.0.1: единая точка доступа к реальному вводу (input.ts) вместо несуществующих window-глобалов
+const INPUTS = { key: INPUT_KEY, input: INPUT_INPUT, joy: INPUT_JOY };
 
 export const MP = {
   BASE: IS_DISCORD ? ('wss://' + location.host) : 'wss://glavny-pes.glavny-pes.workers.dev',
@@ -355,7 +358,11 @@ export const MP = {
     state.time += dt;
     if (state.shake > 0) state.shake = Math.max(0, state.shake - 26 * dt);
     const m = this.snapS;
-    const { key, input, joy } = (window as unknown as { key: Record<string, boolean>, input: { space: boolean; btn: boolean; bark: boolean }, joy: { on: boolean; vx: number; vy: number } });
+    // v2.0.1 КРИТИЧЕСКИЙ ФИКС: раньше input читался из window.key/input/joy — глобалов
+    // JS-монолита v1.x. В TS-сборке их НИКТО не пишет → TypeError на каждом кадре
+    // update() падал ДО обновления чужих псов/NPC — они стояли на месте, потом их
+    // «прыгало» телепортом коррекции. Теперь берём реальные модули input.ts.
+    const { key, input, joy } = INPUTS;
     let ax = ((key.ArrowRight || key.KeyD) ? 1 : 0) - ((key.ArrowLeft || key.KeyA) ? 1 : 0);
     let ay = ((key.ArrowDown || key.KeyS) ? 1 : 0) - ((key.ArrowUp || key.KeyW) ? 1 : 0);
     if (joy.on) { ax = joy.vx; ay = joy.vy; }
@@ -386,7 +393,6 @@ export const MP = {
     const cap = (player.peeing ? 78 : 205) * B.spd, k = 1 - Math.exp(-9 * dt);
     player.vx += (pax * cap - player.vx) * k; player.vy += (pay * cap - player.vy) * k;
     player.x += player.vx * dt; player.y += player.vy * dt;
-    const { collide } = (window as unknown as { collide: (e: { x: number; y: number }, r: number) => void });
     collide(player, 13 * player.sc);
     const sp = Math.hypot(player.vx, player.vy);
     player.moving = sp > 20;
