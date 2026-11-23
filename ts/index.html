@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2E2A26">
+<title>Главный пёс — мини-игра про метки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Comfortaa:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./game.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ======================= HUD ======================= -->
+<div id="hud" class="hidden">
+  <div id="mpBoard" class="hidden"></div>
+  <div class="hcard" id="cardBladder">
+    <div class="hlabel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C12 3 6 10.4 6 14.5A6 6 0 0 0 18 14.5C18 10.4 12 3 12 3Z"/></svg><span data-i="bladder">ПУЗЫРЬ</span></div>
+    <div class="statBar" id="bladderBar"><div class="statFill" id="bladderFill"></div><span class="statReady" data-i="ready">ГОТОВ!</span></div>
+  </div>
+
+  <div class="hcard" id="cardBark">
+    <div class="hlabel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10v4h3l6 5V5L7 10H4Zm14.6-1.4a5.5 5.5 0 0 1 0 6.8l-1.5-1.3a3.5 3.5 0 0 0 0-4.2l1.5-1.3Z"/></svg><span data-i="barkHud">ЛАЙ (E)</span></div>
+    <div class="statBar" id="barkBar"><div class="statFill" id="barkFill"></div><span class="statReady" data-i="ready2">ГОТОВ!</span></div>
+  </div>
+
+  <div class="hcard" id="cardTerr">
+    <div id="terrPct">0%</div>
+    <div class="hlabel" style="justify-content:center" data-i="terr">ТЕРРИТОРИЯ</div>
+    <div id="terrSub">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <span id="spotCnt">0/12</span>
+    </div>
+  </div>
+
+  <div class="hcard" id="cardRight">
+    <div id="timer">1:30</div>
+    <div class="hlabel" style="justify-content:flex-end" data-i="time">ВРЕМЯ</div>
+    <div id="ptsRow"><span data-i="points">ОЧКИ</span> <b id="ptsVal">0</b></div>
+  </div>
+
+  <button class="hudIco" id="btnSound" data-ti="sndTitle">
+    <svg id="icoOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9a4.5 4.5 0 0 1 0 6"/></svg>
+    <svg id="icoOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:none"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor" stroke="none"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+  </button>
+  <button class="hudIco" id="btnPause" data-ti="pauseTitle">
+    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.4"/><rect x="14" y="4" width="4" height="16" rx="1.4"/></svg>
+  </button>
+
+  <div class="hcard" id="cardMap">
+    <div class="hlabel" data-i="marksMap">КАРТА МЕТОК</div>
+    <canvas id="minimap" width="156" height="104"></canvas>
+  </div>
+
+  <div id="hint"><kbd>W A S D</kbd> — бег · держи <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>P</kbd> — пауза</div>
+  <div id="toasts"></div>
+  <button id="barkBtn" data-i="btnBark">ЛАЙ</button>
+  <button id="peeBtn" data-i="btnPee">МЕТИТЬ</button>
+  <div id="joyBase"></div><div id="joyStick"></div>
+</div>
+
+<!-- ======================= ТИТУЛЬНЫЙ ЭКРАН ======================= -->
+<div id="screenTitle" class="screen">
+  <div class="card">
+    <div class="paws">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+    </div>
+    <h1 id="titleH1">ГЛАВНЫЙ <span>ПЁС</span></h1>
+    <p class="tagline" data-i="tagline">карта, кличка, порода, сложность — и в бой за территорию</p>
+
+    <div class="setup">
+      <div class="setupCol">
+        <div class="setLabel" data-i="setName">КЛИЧКА</div>
+        <input id="nameInput" maxlength="12" placeholder="Бобик" autocomplete="off" enterkeyhint="go">
+      </div>
+      <div class="setupCol">
+        <div class="setLabel" data-i="setBreed">ПОРОДА (размер имеет значение)</div>
+        <div class="skinSel">
+          <button type="button" class="arrowBtn" id="skinLeft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <canvas id="skinPrev" width="208" height="120"></canvas>
+          <button type="button" class="arrowBtn" id="skinRight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div id="skinName">…</div>
+        <div id="skinSize" class="sizeTag med">СРЕДНЯЯ</div>
+        <div id="skinPerk">…</div>
+      </div>
+    </div>
+
+    <div class="setLabel" style="margin-bottom:5px" data-i="setMap">КАРТА</div>
+    <div class="optRow" id="mapRow">
+      <button type="button" class="optBtn mapBtn" data-m="yards"><b data-i="m_yards">ДВОРЫ</b><span data-i="m_yardsS">дома, парк, перекрёсток</span></button>
+      <button type="button" class="optBtn mapBtn" data-m="lot"><b data-i="m_lot">РЫНОК</b><span data-i="m_lotS">асфальт, машины, палатки</span></button>
+      <button type="button" class="optBtn mapBtn" data-m="field"><b data-i="m_field">ПУСТЫРЬ</b><span data-i="m_fieldS">сараи, стога, бочки</span></button>
+    </div>
+
+    <div class="setLabel" style="margin-bottom:5px" data-i="setDiff">СЛОЖНОСТЬ</div>
+    <div class="optRow">
+      <button type="button" class="optBtn" data-d="easy"><b data-i="d_easy">ЩЕНОК</b><span data-i="d_easyS">120 сек · без Барбоса</span></button>
+      <button type="button" class="optBtn on" data-d="normal"><b data-i="d_normal">ПЁС</b><span data-i="d_normalS">90 сек · Барбос придёт</span></button>
+      <button type="button" class="optBtn" data-d="hard"><b data-i="d_hard">ВОЖАК</b><span data-i="d_hardS">75 сек · Барбос + Мурзик</span></button>
+    </div>
+
+    <ul class="rules">
+      <li><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.2"/><circle cx="6.6" cy="10.6" r="2.2"/><circle cx="10.6" cy="7.6" r="2.2"/><circle cx="14.6" cy="7.6" r="2.2"/><circle cx="18.2" cy="10.6" r="2.2"/></svg>
+        <span class="ih" data-i="rule1">…</span></li>
+      <li><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10v4h3l6 5V5L7 10H4Zm14.6-1.4a5.5 5.5 0 0 1 0 6.8l-1.5-1.3a3.5 3.5 0 0 0 0-4.2l1.5-1.3Z"/></svg>
+        <span class="ih" data-i="rule2">…</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor"/></svg>
+        <span class="ih" data-i="rule3">…</span></li>
+    </ul>
+    <div class="btnRow">
+      <button class="btn" id="btnPlay" data-i="play">ПОБЕЖАЛИ!</button>
+      <button class="btn ghost" id="btnFriends">🐕‍🦺 <span data-i="friends">С ДРУЗЬЯМИ</span></button>
+      <button class="btn ghost" id="btnAch">🏆 <span data-i="ach">ТРОФЕИ</span></button>
+      <button class="btn ghost" id="btnSet">⚙ <span data-i="settings">НАСТРОЙКИ</span></button>
+    </div>
+    <p class="keys-hint" id="keysHint"><kbd>WASD</kbd> — бег · <kbd>Пробел</kbd> — метить · <kbd>E</kbd> — лай · <kbd>Enter</kbd> — старт</p>
+    <p class="keys-hint ih" id="keysHintTouch" data-i="keysHintTouch">Свайп по экрану — бег · <b>МЕТИТЬ</b> — лужа · <b>ЛАЙ</b> — отпугнуть · <b>II</b> — пауза</p>
+    <div class="verTag" id="verTag">v1.4.0</div>
+  </div>
+</div>
+
+<!-- ======================= ЭКРАН ИТОГОВ ======================= -->
+<div id="screenEnd" class="screen hidden">
+  <div class="card">
+    <p class="tagline" style="margin-top:0" id="endTag">…</p>
+    <h1 id="rankTitle">…</h1>
+    <p id="rankSub">…</p>
+    <div class="recLine" id="recLine">★</div>
+    <div class="stats" id="statsBox"></div>
+    <div class="btnRow">
+      <button class="btn" id="btnAgain" data-i="again">ЕЩЁ РАЗ!</button>
+      <button class="btn ghost" id="btnShare">📤 <span data-i="share">ПОДЕЛИТЬСЯ</span></button>
+      <button class="btn ghost" id="btnMenuEnd" data-i="toMenu">в главное меню</button>
+    </div>
+    <p class="keys-hint" id="againHint"><kbd>Enter</kbd> — играть снова</p>
+  </div>
+</div>
+
+<!-- ======================= ПАУЗА ======================= -->
+<div id="screenPause" class="screen hidden">
+  <div class="card" style="max-width:360px">
+    <h1 data-i="pauseT">ПАУЗА</h1>
+    <p class="tagline" data-i="pauseS">пёс ждёт команды…</p>
+    <button class="btn" id="btnResume" data-i="resume">ПРОДОЛЖИТЬ</button>
+    <p style="height:10px"></p>
+    <div class="btnRow">
+      <button class="btn ghost" id="btnRestart" data-i="restart">начать заново</button>
+      <button class="btn ghost" id="btnSetPause" data-i="settings">настройки</button>
+      <button class="btn ghost" id="btnMenuPause" data-i="toMenu">в главное меню</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ЛОББИ МУЛЬТИПЛЕЕРА ======================= -->
+<div id="screenLobby" class="screen hidden">
+  <div class="card" style="max-width:430px">
+    <h1 style="font-size:clamp(20px,4vw,28px)" data-i="lobbyT">С ДРУЗЬЯМИ</h1>
+    <p class="tagline" style="margin:6px 0 10px" data-i="lobbySub">комната на 3 пса · у кого территория больше</p>
+    <div id="lobbyHome">
+      <button class="btn" id="btnRoomCreate" style="width:100%">🆕 <span data-i="lobbyCreate">СОЗДАТЬ КОМНАТУ</span></button>
+      <div class="setRow" style="margin-top:10px;justify-content:center">
+        <input id="codeInput" maxlength="4" placeholder="КОД" autocomplete="off">
+        <button class="btn ghost" id="btnRoomJoin">➡ <span data-i="lobbyJoin">ВОЙТИ</span></button>
+      </div>
+    </div>
+    <div id="lobbyRoom" class="hidden">
+      <div class="codeBig" id="codeBig">----</div>
+      <p class="keys-hint" style="margin:0 0 10px" id="codeHint">код комнаты — отправь его друзьям</p>
+      <div id="lobbyPlayers"></div>
+      <div class="setRow"><span data-i="lobbyMap">Карта</span><b id="lobbyMapName">ДВОРЫ</b></div>
+      <div class="setRow"><span data-i="lobbyDiff">Сложность</span><b id="lobbyDiffName">ПЁС</b></div>
+      <div id="hostCtls" class="hidden">
+        <div class="lobSel" id="lobMapSel">
+          <button type="button" class="langBtn lobMapBtn" data-m="yards">ДВОРЫ</button>
+          <button type="button" class="langBtn lobMapBtn" data-m="lot">РЫНОК</button>
+          <button type="button" class="langBtn lobMapBtn" data-m="field">ПУСТЫРЬ</button>
+        </div>
+        <div class="lobSel" id="lobDiffSel">
+          <button type="button" class="langBtn lobDiffBtn" data-d="easy">ЩЕНОК</button>
+          <button type="button" class="langBtn lobDiffBtn" data-d="normal">ПЁС</button>
+          <button type="button" class="langBtn lobDiffBtn" data-d="hard">ВОЖАК</button>
+        </div>
+      </div>
+      <div class="btnRow">
+        <button class="btn" id="btnLobbyStart">🏁 <span data-i="lobbyStart">НАЧАТЬ!</span></button>
+        <button class="btn ghost" id="btnLobbyShare">📤 <span data-i="share">ПОДЕЛИТЬСЯ</span></button>
+        <button class="btn ghost" id="btnLobbyLeave" data-i="toMenu">выйти</button>
+      </div>
+    </div>
+    <p class="keys-hint" id="lobbyStatus" style="min-height:18px"></p>
+  </div>
+</div>
+
+<!-- ======================= НАСТРОЙКИ ======================= -->
+<div id="screenSet" class="screen hidden">
+  <div class="card">
+    <h1 style="font-size:clamp(20px,4vw,28px)" data-i="setT">НАСТРОЙКИ</h1>
+    <p class="tagline" style="margin:6px 0 4px" data-i="setSub">звук, язык и обучение</p>
+
+    <div class="setRow">
+      <span data-i="volume">Громкость</span>
+      <input type="range" id="volSlider" min="0" max="100" step="5" value="80">
+      <b id="volVal">80%</b>
+    </div>
+    <div class="setRow">
+      <span data-i="music">Музыка</span>
+      <input type="range" id="musSlider" min="0" max="100" step="5" value="40">
+      <b id="musVal">40%</b>
+    </div>
+    <div class="setRow">
+      <span data-i="vibro">Вибрация</span>
+      <button type="button" class="langBtn" id="vibBtn">ВКЛ</button>
+    </div>
+    <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+      <span style="text-align:center" data-i="gfx">Графика</span>
+      <div class="langRow">
+        <button type="button" class="langBtn gfxBtn" data-q="auto" data-i="qAuto">АВТО</button>
+        <button type="button" class="langBtn gfxBtn" data-q="high" data-i="qHigh">ВЫСОКОЕ</button>
+        <button type="button" class="langBtn gfxBtn" data-q="low" data-i="qLow">БЫСТРОЕ</button>
+      </div>
+    </div>
+
+    <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+      <span style="text-align:center" data-i="language">Язык</span>
+      <div class="langRow">
+        <button type="button" class="langBtn" data-l="ru">РУС</button>
+        <button type="button" class="langBtn" data-l="en">ENG</button>
+        <button type="button" class="langBtn" data-l="zh">中文</button>
+        <button type="button" class="langBtn" data-l="es">ESP</button>
+      </div>
+    </div>
+
+    <div class="btnRow" style="margin-top:12px">
+      <button class="btn ghost" id="btnTutReplay" data-i="showTut">показать обучение</button>
+      <button class="btn" id="btnSetBack" data-i="back">назад</button>
+    </div>
+    <div class="verTag" id="verTag2">v1.4.0</div>
+  </div>
+</div>
+
+<!-- ======================= ОБУЧЕНИЕ ======================= -->
+<div id="screenTut" class="screen hidden">
+  <div class="card">
+    <div id="tutIcon"></div>
+    <div id="tutStepNo">1/5</div>
+    <div class="tutT" id="tutT">…</div>
+    <div class="tutD" id="tutD">…</div>
+    <div class="tutDots" id="tutDots"></div>
+    <div class="btnRow">
+      <button class="btn ghost" id="btnTutSkip" data-i="tutSkip">пропустить</button>
+      <button class="btn" id="btnTutNext" data-i="tutNext">ДАЛЕЕ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ДОСТИЖЕНИЯ ======================= -->
+<div id="screenAch" class="screen hidden">
+  <div class="card">
+    <h1 style="font-size:clamp(20px,4vw,28px)" data-i="achT">ТРОФЕИ</h1>
+    <p class="tagline" style="margin:4px 0 8px" data-i="achSub">12 наград верного пса</p>
+    <div class="achGrid" id="achList"></div>
+    <div id="statLine">…</div>
+    <div class="btnRow"><button class="btn" id="btnAchBack" data-i="back">назад</button></div>
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
