@@ -73,15 +73,19 @@ function mpTF(k: 'spot' | 'scat', n: string): string {
 function esc(s: string): string { return ('' + s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string)); }
 const SKBASEC = [{ sc: .84 }, { sc: .84 }, { sc: .84 }, { sc: 1 }, { sc: 1 }, { sc: 1 }, { sc: 1.22 }, { sc: 1.22 }, { sc: 1.22 }];
 
-export interface RemoteDog { seat: number; name: string; skin: number; dog: DogState & { tx: number; ty: number; ta: number; tph: number; mv: boolean; missT?: number; vx2?: never; vy2?: never }; missT?: number }
+export interface RemoteDog { seat: number; name: string; skin: number; dog: DogState & { tx: number; ty: number; ta: number; tph: number; mv: boolean; vx2?: never; vy2?: never }; missT?: number }
 export interface MPPlayer { seat: number; name: string; skin: number; host?: boolean }
 interface SnapMsg {
   t: string; seat?: number; phase?: string; map?: string; diff?: string; players?: (MPPlayer | null)[];
   standings?: { seat: number; name: string; pct: number; pts: number }[];
-  tm?: number; pts?: number[]; pct?: number[]; sp?: [number, number[]][]; bo?: number[];
+  tm?: number; pts?: number[]; pct?: number[]; sp?: [number, number[]][]; bo?: number[]; n?: number;
   s?: Record<number, number[]>; r?: number[]; b?: number[]; c?: number[];
   ev?: unknown[][]; bn?: [number, number][]; msg?: string;
 }
+// v2.0.1: dead-reckoning-трекер для сетевой сущности (чужой пёс / NPC).
+// Держит сглаженную позицию/скорость и «съедает» ошибку предсказания малыми долями,
+// вместо телепорта к последнему снапшоту (рывков) или слепого lerp к нему (дрожания).
+interface DrkEntity { x: number; y: number; a: number; ph: number; vx: number; vy: number; mv: boolean; err: number; lastN: number }
 const COL: Record<number, string> = { 1: '#EFC94C', 2: '#7EC4E8', 3: '#E88A6A', 4: '#93A5BD', 5: '#B08A5A' };
 const SEATPAL: (string | null)[] = [null, '#EFC94C', '#7EC4E8', '#E88A6A'];
 
@@ -92,6 +96,8 @@ export const MP = {
   players: [] as (MPPlayer | null)[],
   grid: null as Uint8Array | null, counts: null as number[] | null, freeCells: 1, myPct: 0,
   remotes: [] as RemoteDog[], snapS: null as SnapMsg | null,
+  drk: {} as Record<number, DrkEntity>, // v2.0.1: трекеры dead reckoning по seat
+  drkNpc: { r: null as DrkEntity | null, b: null as DrkEntity | null, c: null as DrkEntity | null },
   myInp: { ax: 0, ay: 0, p: 0, b: 0 }, inTimer: null as ReturnType<typeof setInterval> | null,
   phase: '' as string,
   npcT: { r: null as { x: number; y: number; a: number; st: string; mv: boolean; ph: number } | null, b: null as { x: number; y: number; a: number; st: string; mv: boolean; ph: number } | null, c: null as { x: number; y: number; a: number; st: string; mv: boolean; ph: number } | null },
@@ -247,6 +253,7 @@ export const MP = {
       dog: { x: W / 2, y: H / 2, tx: W / 2, ty: H / 2, a: 0, ta: 0, phase: 0, tph: 0, sc: (SKBASEC[p.skin] as { sc: number }).sc, peeing: false, moving: true, excited: false, id: p.seat + 1, mv: false } as RemoteDog['dog'],
     }));
     this.npcT = { r: null, b: null, c: null };
+    this.drk = {}; this.drkNpc = { r: null, b: null, c: null };
     rival.x = 900; rival.y = 300; rival.a = Math.PI; barb.active = false; barb.state = 'gone'; barb.x = -100; barb.y = -100;
     cat.active = !!(m.diff && { easy: false, normal: false, hard: true }[m.diff]);
     setState('play');
@@ -387,15 +394,43 @@ export const MP = {
     player.phase += sp * dt * .075;
     player.stationary = sp < 22 ? player.stationary + dt : 0;
     if (sp > 150) { player.dustT -= dt; if (player.dustT <= 0) { player.dustT = .09; dust(player.x - Math.cos(player.a) * 12, player.y - Math.sin(player.a) * 12, 1, 20); } }
-    // сверка с сервером
+    // сверка с сервером (свой пёс: локальное предсказание + мягкая коррекция)
     if (m && m.s && m.s[this.seat]) {
       const s0 = m.s[this.seat];
       const dx = s0[0] - player.x, dy = s0[1] - player.y, dd = Math.hypot(dx, dy);
+      // v2.0.1: телепорт только при большом разрыве (столкновение/отскок/схватка),
+      // порог ниже при стане — там предсказание заведомо врёт
       if (dd > (this.stunT > 0 ? 24 : 70)) { player.x = s0[0]; player.y = s0[1]; }
       else { player.x += dx * Math.min(1, dt * 4); player.y += dy * Math.min(1, dt * 4); }
       player.peeing = !!s0[4]; player.bladder = s0[5];
       if (s0[6] > player.barkCd) player.barkCd = s0[6];
     }
+    // v2.0.1: dead reckoning для чужих псов и NPC.
+    // Проблема была: lerp к ПОСЛЕДНЕМУ снапшоту. Снапы идут 20 Гц и приходят
+    // пачками по TCP → цель скачет на 50–150 мс вперед → пёс дёргается рывками.
+    // Теперь: экстраполируем по скорости из снапа (vx,vy в хвосте массива),
+    // а ошибку предсказания (сервер vs наша экстраполяция) съедаем малыми
+    // долями за несколько кадров — движение получается ровным при любом джиттере.
+    const drkStep = (t: DrkEntity, sx: number, sy: number, sa: number, svx: number, svy: number, smv: number, sph: number): void => {
+      // экстраполяция вперёд
+      t.x += t.vx * dt; t.y += t.vy * dt;
+      // ошибка предсказания — «съесть» малой долой
+      const ex = sx - t.x, ey = sy - t.y, ed = Math.hypot(ex, ey);
+      t.err = ed;
+      const f = Math.min(1, dt * 8);
+      t.x += ex * f; t.y += ey * f;
+      // телепорт только при реальном разрыве (респавн/схватка/победа над коллизией)
+      if (ed > 90) { t.x = sx; t.y = sy; }
+      // скорость — сглаженно тянем к серверной
+      t.vx += (svx - t.vx) * Math.min(1, dt * 10);
+      t.vy += (svy - t.vy) * Math.min(1, dt * 10);
+      // поворот/анимация
+      t.a = lerpAng(t.a, sa, Math.min(1, dt * 12));
+      t.mv = !!smv;
+      // v2.0.1: фаза ходьбы — НЕ копируем серверную (она ступенчатая 20 Гц и
+      // дрожит), интегрируем локально от скорости — лапы всегда плавные
+      t.ph += Math.max(0, Math.hypot(t.vx, t.vy)) * dt * .075;
+    };
     // чужие псы
     if (m && m.s) {
       this.remotes = this.remotes.filter(r => {
@@ -406,25 +441,40 @@ export const MP = {
       for (const r of this.remotes) {
         const s = m.s[r.seat]; if (!s) continue;
         const d = r.dog;
-        d.x += (s[0] - d.x) * Math.min(1, dt * 14); d.y += (s[1] - d.y) * Math.min(1, dt * 14);
-        d.a = lerpAng(d.a, s[2], Math.min(1, dt * 12));
-        d.moving = !!s[3]; d.peeing = !!s[4]; d.phase = s[8] || 0;
+        const snapN = m.n as number;
+        let t = this.drk[r.seat];
+        if (!t || t.lastN !== snapN) {
+          if (!t) { t = this.drk[r.seat] = { x: s[0], y: s[1], a: s[2], ph: s[8] || 0, vx: 0, vy: 0, mv: false, err: 0, lastN: snapN }; }
+          // новый снап: обновляем целевые скорости (vx,vy в хвосте, index 9/10)
+          t.lastN = snapN;
+          drkStep(t, s[0], s[1], s[2], s[9] || 0, s[10] || 0, s[3], s[8] || 0);
+        } else {
+          drkStep(t, t.x, t.y, s[2], s[9] || 0, s[10] || 0, s[3], s[8] || 0);
+        }
+        d.x = t.x; d.y = t.y; d.a = t.a;
+        d.moving = t.mv; d.peeing = !!s[4]; d.phase = t.ph;
       }
     }
-    // NPC
+    // NPC (Рекс/Барбос/Мурзик) — тот же dead reckoning
     if (m) {
-      if (m.r) { const t = this.npcT.r || (this.npcT.r = { x: 0, y: 0, a: 0, st: '', mv: false, ph: 0 }); t.x = m.r[0]; t.y = m.r[1]; t.a = m.r[2]; t.st = String(m.r[3]); t.mv = !!m.r[4]; t.ph = m.r[5]; }
-      if (m.b) { const t = this.npcT.b || (this.npcT.b = { x: 0, y: 0, a: 0, st: '', mv: false, ph: 0 }); t.x = m.b[0]; t.y = m.b[1]; t.a = m.b[2]; t.st = String(m.b[3]); t.mv = !!m.b[4]; t.ph = m.b[5]; }
-      else { barb.active = false; barb.state = 'gone'; }
-      if (m.c) { const t = this.npcT.c || (this.npcT.c = { x: 0, y: 0, a: 0, st: '', mv: false, ph: 0 }); t.x = m.c[0]; t.y = m.c[1]; t.a = m.c[2]; t.st = String(m.c[3]); t.mv = !!m.c[4]; t.ph = m.c[5]; }
+      const npcStep = (key: 'r' | 'b' | 'c', arr: unknown[] | null): void => {
+        const dst = key === 'r' ? rival : key === 'b' ? barb : cat;
+        if (!arr) { if (key === 'b') { barb.active = false; barb.state = 'gone'; } return; }
+        const st = String(arr[3]);
+        const x = arr[0] as number, y = arr[1] as number, a = arr[2] as number;
+        const vx = (arr[6] as number) || 0, vy = (arr[7] as number) || 0;
+        const mv = arr[4] as number, ph = (arr[5] as number) || 0;
+        let t = this.drkNpc[key];
+        if (!t) { t = this.drkNpc[key] = { x, y, a, ph, vx: 0, vy: 0, mv: false, err: 0, lastN: 0 }; }
+        drkStep(t, x, y, a, vx, vy, mv, ph);
+        if (key === 'r') { rival.x = t.x; rival.y = t.y; rival.a = t.a; rival.phase = t.ph; rival.moving = t.mv; }
+        else if (key === 'b') { barb.active = true; barb.state = st === 'gone' ? 'gone' : (st as BarbStateStr); if (barb.state !== 'gone') { barb.x = t.x; barb.y = t.y; barb.a = t.a; barb.phase = t.ph; barb.moving = t.mv; } }
+        else { cat.active = true; cat.state = st as CatStateStr; cat.x = t.x; cat.y = t.y; cat.a = t.a; cat.phase = t.ph; cat.moving = t.mv; }
+      };
+      npcStep('r', m.r ? m.r : null);
+      npcStep('b', m.b ? m.b : null);
+      npcStep('c', m.c ? m.c : null);
     }
-    const sm = (o: DogState, t: { x: number; y: number; a: number; ph: number } | null): void => {
-      if (!t) return; const f = Math.min(1, dt * 12);
-      o.x += (t.x - o.x) * f; o.y += (t.y - o.y) * f; o.a = lerpAng(o.a, t.a, f); o.phase = t.ph;
-    };
-    sm(rival, this.npcT.r); rival.moving = this.npcT.r ? this.npcT.r.mv : rival.moving;
-    if (this.npcT.b) { barb.active = true; barb.state = this.npcT.b.st === 'gone' ? 'gone' : (this.npcT.b.st as BarbStateStr); if (barb.state !== 'gone') { sm(barb, this.npcT.b); barb.moving = this.npcT.b.mv; } }
-    if (this.npcT.c) { cat.active = true; cat.state = this.npcT.c.st as CatStateStr; sm(cat, this.npcT.c); cat.moving = this.npcT.c.mv; }
     // камера
     const tx = clamp(player.x + Math.cos(player.a) * 36, state.vw / 2, W - state.vw / 2);
     const ty = clamp(player.y + Math.sin(player.a) * 36, state.vh / 2, H - state.vh / 2);
@@ -496,6 +546,7 @@ export const MP = {
   toastDisc(): void {
     this.inGame = false; this.active = false;
     if (this.inTimer) { clearInterval(this.inTimer); this.inTimer = null; }
+    this.drk = {}; this.drkNpc = { r: null, b: null, c: null };
     stopPeeSnd();
     toast(this.TT().disc, 'red');
     this.leave(true);
